@@ -1,77 +1,101 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { BookOpen, Users, DollarSign, Music, Book } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
-// Database simulation
-const classes = [
-  { id: 1, name: '01. OVELHINHAS E CORDEIRINHOS DE CRISTO (2 a 5 anos)' },
-  { id: 2, name: '02. SOLDADOS DE CRISTO (6 a 8 anos)' },
-  { id: 3, name: '03. ESTRELA DE DAVI (9 a 11 anos)' },
-  { id: 4, name: '04. LAEL (12 a 14 anos)' },
-  { id: 5, name: '05. ÁGAPE (15 a 17 anos)' },
-  { id: 6, name: '06. NOVA VIDA (Novos Convertidos)' },
-  { id: 7, name: '07. EMANUEL (Jovens)' },
-  { id: 8, name: '08. ESTER (irmãs)' },
-  { id: 9, name: '09. LÍRIOS DOS VALES (irmãs)' },
-  { id: 10, name: '10. VENCEDORAS PELA FÉ (irmãs)' },
-  { id: 11, name: '11. ESPERANÇA (irmãs)' },
-  { id: 12, name: '12. HERÓIS DA FÉ (irmãos)' },
-  { id: 13, name: '13. DÉBORA (Pastora, Missionárias e Diaconisas)' },
-  { id: 14, name: '14. MOISES (Diáconos)' },
-  { id: 15, name: '15. ABRAÃO (Pastores, Evangelistas e Presbíteros)' },
-  { id: 16, name: '16. PROFESSORES' },
-  { id: 17, name: '17. CLASSE EXTRA - REGIONAL' }
-];
-
-const students = [
-  { id: 101, name: 'Ana Beatriz', class_id: 1 },
-  { id: 102, name: 'Lucas Gabriel', class_id: 1 },
-  { id: 103, name: 'Sofia Oliveira', class_id: 1 },
-  { id: 201, name: 'Davi Luiz', class_id: 2 },
-  { id: 202, name: 'Isabela Costa', class_id: 2 },
-  { id: 301, name: 'Mateus Pereira', class_id: 3 },
-  { id: 302, name: 'Júlia Martins', class_id: 3 },
-  { id: 303, name: 'Enzo Rodrigues', class_id: 3 },
-  { id: 304, name: 'Laura Almeida', class_id: 3 },
-  { id: 701, name: 'Gabriel Ferreira', class_id: 7 },
-  { id: 702, name: 'Beatriz Lima', class_id: 7 },
-  { id: 703, name: 'Thiago Souza', class_id: 7 }
-];
-
-interface FormData {
-  data_registro: string;
-  classe_selecionada: string;
-  alunos_presentes_lista: string[];
-  total_alunos_presentes: number;
-  total_visitantes: number;
-  total_biblias: number;
-  total_revistas: number;
-  oferta_dinheiro: number;
-  oferta_pix_cartao: number;
-  hino_escolhido: string;
+interface Class {
+  id: number;
+  name: string;
 }
 
-export function EBDRegistrationForm() {
-  const [selectedClassId, setSelectedClassId] = useState<string>("");
+interface Student {
+  id: number;
+  name: string;
+  class_id: number;
+  active: boolean;
+}
+
+interface FormData {
+  registrationDate: string;
+  selectedClass: string;
+  presentStudents: string[];
+  totalPresent: number;
+  visitors: number;
+  bibles: number;
+  magazines: number;
+  offeringCash: number;
+  offeringPix: number;
+  hymn: string;
+}
+
+export const EBDRegistrationForm = () => {
+  const navigate = useNavigate();
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [presentStudents, setPresentStudents] = useState<string[]>([]);
-  const [visitors, setVisitors] = useState(0);
-  const [bibles, setBibles] = useState(0);
-  const [magazines, setMagazines] = useState(0);
-  const [offeringCash, setOfferingCash] = useState(0);
-  const [offeringPix, setOfferingPix] = useState(0);
-  const [hymn, setHymn] = useState("");
-  const [showOutput, setShowOutput] = useState(false);
+  const [visitors, setVisitors] = useState<number>(0);
+  const [bibles, setBibles] = useState<number>(0);
+  const [magazines, setMagazines] = useState<number>(0);
+  const [offeringCash, setOfferingCash] = useState<number>(0);
+  const [offeringPix, setOfferingPix] = useState<number>(0);
+  const [hymn, setHymn] = useState<string>('');
+  const [pixFiles, setPixFiles] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData | null>(null);
-  
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchClasses();
+    fetchStudents();
+  }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .select("*")
+        .order("id");
+      
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao carregar classes.",
+      });
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("students")
+        .select("*")
+        .eq("active", true)
+        .order("name");
+      
+      if (error) throw error;
+      setStudents(data || []);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao carregar alunos.",
+      });
+    }
+  };
 
   const studentsInClass = students.filter(student => 
     student.class_id === parseInt(selectedClassId)
@@ -85,92 +109,176 @@ export function EBDRegistrationForm() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setPixFiles(files);
+  };
+
+  const uploadFiles = async (): Promise<string[]> => {
+    const uploadedUrls: string[] = [];
+
+    for (const file of pixFiles) {
+      try {
+        const timestamp = Date.now();
+        const fileName = `${timestamp}-${file.name}`;
+        
+        const { data, error } = await supabase.storage
+          .from("pix-receipts")
+          .upload(fileName, file);
+
+        if (error) throw error;
+        uploadedUrls.push(data.path);
+      } catch (error) {
+        console.error("Error uploading file:", error);
+        throw error;
+      }
+    }
+
+    return uploadedUrls;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!selectedClassId) {
       toast({
         variant: "destructive",
-        title: "Erro",
+        title: "Erro de validação",
         description: "Por favor, selecione uma classe.",
       });
       return;
     }
 
-    const selectedClass = classes.find(c => c.id === parseInt(selectedClassId));
-    
-    const data: FormData = {
-      data_registro: new Date().toLocaleString('pt-BR'),
-      classe_selecionada: selectedClass?.name || '',
-      alunos_presentes_lista: presentStudents,
-      total_alunos_presentes: presentStudents.length,
-      total_visitantes: visitors,
-      total_biblias: bibles,
-      total_revistas: magazines,
-      oferta_dinheiro: offeringCash,
-      oferta_pix_cartao: offeringPix,
-      hino_escolhido: hymn
-    };
+    setIsSubmitting(true);
 
-    setFormData(data);
-    setShowOutput(true);
-    
-    toast({
-      title: "Registro salvo com sucesso!",
-      description: "Os dados da aula foram registrados.",
-    });
+    try {
+      // Upload files if any
+      let pixReceiptUrls: string[] = [];
+      if (pixFiles.length > 0) {
+        pixReceiptUrls = await uploadFiles();
+      }
+
+      // Save registration to database
+      const { data, error } = await supabase
+        .from("registrations")
+        .insert([
+          {
+            class_id: parseInt(selectedClassId),
+            present_students: presentStudents,
+            total_present: presentStudents.length,
+            visitors: visitors,
+            bibles: bibles,
+            magazines: magazines,
+            offering_cash: offeringCash,
+            offering_pix: offeringPix,
+            hymn: hymn,
+            pix_receipt_urls: pixReceiptUrls
+          }
+        ])
+        .select();
+
+      if (error) throw error;
+
+      const selectedClass = classes.find(c => c.id === parseInt(selectedClassId));
+      
+      const newFormData: FormData = {
+        registrationDate: new Date().toISOString(),
+        selectedClass: selectedClass?.name || '',
+        presentStudents: presentStudents,
+        totalPresent: presentStudents.length,
+        visitors: visitors,
+        bibles: bibles,
+        magazines: magazines,
+        offeringCash: offeringCash,
+        offeringPix: offeringPix,
+        hymn: hymn
+      };
+
+      setFormData(newFormData);
+      
+      toast({
+        title: "Registro salvo com sucesso!",
+        description: `Classe: ${selectedClass?.name}`,
+      });
+
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao salvar registro. Tente novamente.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetForm = () => {
-    setSelectedClassId("");
+    setSelectedClassId('');
     setPresentStudents([]);
     setVisitors(0);
     setBibles(0);
     setMagazines(0);
     setOfferingCash(0);
     setOfferingPix(0);
-    setHymn("");
-    setShowOutput(false);
+    setHymn('');
+    setPixFiles([]);
     setFormData(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  useEffect(() => {
-    setPresentStudents([]);
-  }, [selectedClassId]);
+  const handleBackToLogin = () => {
+    navigate("/");
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-accent/30 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-primary rounded-full shadow-glow mb-4">
-            <BookOpen className="w-10 h-10 text-primary-foreground" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-            Registro de Aula da EBD
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Sistema de registro para Escola Bíblica Dominical
-          </p>
-        </div>
-
-        {/* Main Form */}
-        <Card className="shadow-card border-0 bg-card/95 backdrop-blur-sm">
-          <CardHeader className="space-y-4">
-            <CardTitle className="text-2xl text-center text-primary">
-              Informações da Aula
-            </CardTitle>
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
+      <div className="container mx-auto max-w-4xl">
+        <Card className="shadow-xl border-primary/20">
+          <CardHeader className="text-center bg-gradient-to-r from-primary/10 to-secondary/10">
+            <div className="flex items-center justify-between">
+              <Button
+                onClick={handleBackToLogin}
+                variant="outline"
+                size="sm"
+                className="border-primary/20"
+              >
+                ← Voltar
+              </Button>
+              <div className="flex-1 text-center">
+                <CardTitle className="text-3xl text-primary flex items-center justify-center gap-3">
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                  </svg>
+                  Registro de Aula - EBD
+                </CardTitle>
+                <CardDescription className="text-lg">
+                  Sistema de controle e acompanhamento das aulas da Escola Bíblica Dominical
+                </CardDescription>
+              </div>
+              <div className="w-20"></div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-8">
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-6">
               {/* Class Selection */}
-              <div className="space-y-3">
-                <Label htmlFor="class-select" className="text-lg font-semibold flex items-center gap-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  Selecione a Classe
-                </Label>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-primary">Selecione a Classe</label>
                 <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                  <SelectTrigger className="h-12 text-base">
+                  <SelectTrigger className="h-12 border-primary/20 focus:border-primary">
                     <SelectValue placeholder="-- Por favor, escolha uma classe --" />
                   </SelectTrigger>
                   <SelectContent>
@@ -184,9 +292,9 @@ export function EBDRegistrationForm() {
               </div>
 
               {/* Students List */}
-              <div className="space-y-3">
-                <Label className="text-lg font-semibold">Alunos Presentes</Label>
-                <Card className="bg-gradient-secondary border-accent/50">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-primary">Alunos Presentes</label>
+                <Card className="border-primary/20">
                   <CardContent className="p-4">
                     {!selectedClassId ? (
                       <p className="text-muted-foreground text-center py-8">
@@ -197,10 +305,10 @@ export function EBDRegistrationForm() {
                         Não há alunos cadastrados para esta classe.
                       </p>
                     ) : (
-                      <ScrollArea className="h-64">
+                      <ScrollArea className="h-48">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                           {studentsInClass.map((student) => (
-                            <div key={student.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-accent/50 transition-colors">
+                            <div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5">
                               <Checkbox
                                 id={`student-${student.id}`}
                                 checked={presentStudents.includes(student.name)}
@@ -210,7 +318,7 @@ export function EBDRegistrationForm() {
                               />
                               <Label 
                                 htmlFor={`student-${student.id}`}
-                                className="flex-1 cursor-pointer"
+                                className="flex-1 cursor-pointer text-sm"
                               >
                                 {student.name}
                               </Label>
@@ -222,146 +330,166 @@ export function EBDRegistrationForm() {
                   </CardContent>
                 </Card>
                 {selectedClassId && studentsInClass.length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    {presentStudents.length} de {studentsInClass.length} alunos selecionados
+                  <p className="text-xs text-primary font-medium">
+                    {presentStudents.length} de {studentsInClass.length} alunos presentes
                   </p>
                 )}
               </div>
 
-              <Separator />
-
-              {/* Numbers Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Numbers Section */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="space-y-2">
-                  <Label htmlFor="visitors" className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-primary" />
-                    Visitantes
-                  </Label>
+                  <label className="text-sm font-semibold text-primary">Visitantes</label>
                   <Input
-                    id="visitors"
                     type="number"
-                    min="0"
                     value={visitors}
                     onChange={(e) => setVisitors(parseInt(e.target.value) || 0)}
-                    className="h-12 text-base"
+                    placeholder="0"
+                    min="0"
+                    className="border-primary/20 focus:border-primary"
                   />
                 </div>
-                
                 <div className="space-y-2">
-                  <Label htmlFor="bibles" className="flex items-center gap-2">
-                    <Book className="w-4 h-4 text-primary" />
-                    Bíblias
-                  </Label>
+                  <label className="text-sm font-semibold text-primary">Bíblias</label>
                   <Input
-                    id="bibles"
                     type="number"
-                    min="0"
                     value={bibles}
                     onChange={(e) => setBibles(parseInt(e.target.value) || 0)}
-                    className="h-12 text-base"
+                    placeholder="0"
+                    min="0"
+                    className="border-primary/20 focus:border-primary"
                   />
                 </div>
-                
                 <div className="space-y-2">
-                  <Label htmlFor="magazines" className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-primary" />
-                    Revistas
-                  </Label>
+                  <label className="text-sm font-semibold text-primary">Revistas</label>
                   <Input
-                    id="magazines"
                     type="number"
-                    min="0"
                     value={magazines}
                     onChange={(e) => setMagazines(parseInt(e.target.value) || 0)}
-                    className="h-12 text-base"
+                    placeholder="0"
+                    min="0"
+                    className="border-primary/20 focus:border-primary"
                   />
                 </div>
               </div>
 
-              {/* Offering */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Offering Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div className="space-y-2">
-                  <Label htmlFor="offering-cash" className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    Oferta (Dinheiro)
-                  </Label>
+                  <label className="text-sm font-semibold text-primary">Oferta (Dinheiro)</label>
                   <Input
-                    id="offering-cash"
                     type="number"
-                    min="0"
-                    step="0.01"
                     value={offeringCash}
                     onChange={(e) => setOfferingCash(parseFloat(e.target.value) || 0)}
-                    className="h-12 text-base"
-                    placeholder="0,00"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="border-primary/20 focus:border-primary"
                   />
                 </div>
-                
                 <div className="space-y-2">
-                  <Label htmlFor="offering-pix" className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-primary" />
-                    Oferta (PIX/Cartão)
-                  </Label>
+                  <label className="text-sm font-semibold text-primary">Oferta (PIX/Cartão)</label>
                   <Input
-                    id="offering-pix"
                     type="number"
-                    min="0"
-                    step="0.01"
                     value={offeringPix}
                     onChange={(e) => setOfferingPix(parseFloat(e.target.value) || 0)}
-                    className="h-12 text-base"
-                    placeholder="0,00"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="border-primary/20 focus:border-primary"
                   />
                 </div>
               </div>
 
-              {/* Hymn */}
-              <div className="space-y-2">
-                <Label htmlFor="hymn" className="flex items-center gap-2">
-                  <Music className="w-4 h-4 text-primary" />
-                  Hino Escolhido
+              {/* File Upload Section */}
+              <div className="mb-6">
+                <Label htmlFor="pix-files" className="text-sm font-semibold text-primary">
+                  Comprovantes de PIX (opcional)
                 </Label>
+                <div className="mt-2">
+                  <Input
+                    ref={fileInputRef}
+                    id="pix-files"
+                    type="file"
+                    accept="image/*,.pdf"
+                    multiple
+                    onChange={handleFileChange}
+                    className="border-primary/20 focus:border-primary"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Anexe imagens ou PDFs dos comprovantes de PIX
+                  </p>
+                  {pixFiles.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm text-primary font-medium">
+                        {pixFiles.length} arquivo(s) selecionado(s):
+                      </p>
+                      <ul className="text-sm text-muted-foreground">
+                        {pixFiles.map((file, index) => (
+                          <li key={index} className="truncate">• {file.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Hymn Section */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-primary">Hino Escolhido</label>
                 <Input
-                  id="hymn"
                   value={hymn}
                   onChange={(e) => setHymn(e.target.value)}
                   placeholder="Ex: 15 - Harpa Cristã"
-                  className="h-12 text-base"
+                  className="border-primary/20 focus:border-primary"
                 />
               </div>
 
               {/* Submit Button */}
-              <div className="flex gap-4 pt-4">
-                <Button type="submit" size="lg" className="flex-1">
-                  Registrar Aula
+              <Button 
+                type="submit" 
+                size="lg" 
+                disabled={isSubmitting}
+                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
+              >
+                {isSubmitting ? "Salvando..." : "Registrar Aula"}
+              </Button>
+
+              {/* Reset Button */}
+              {formData && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="lg" 
+                  onClick={resetForm}
+                  className="w-full border-primary text-primary hover:bg-primary/10"
+                >
+                  Novo Registro
                 </Button>
-                {showOutput && (
-                  <Button type="button" variant="secondary" size="lg" onClick={resetForm}>
-                    Novo Registro
-                  </Button>
-                )}
-              </div>
+              )}
             </form>
           </CardContent>
         </Card>
 
-        {/* Output */}
-        {showOutput && formData && (
-          <Card className="shadow-card border-success/50 bg-success-bg/50">
+        {/* Success Output */}
+        {formData && (
+          <Card className="mt-6 shadow-xl border-green-200 bg-green-50">
             <CardHeader>
-              <CardTitle className="text-success flex items-center gap-2">
-                <BookOpen className="w-5 h-5" />
-                Dados Registrados
-              </CardTitle>
+              <CardTitle className="text-green-800">✅ Registro Salvo com Sucesso!</CardTitle>
+              <CardDescription className="text-green-600">
+                Os dados da aula foram registrados no sistema.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <pre className="text-sm bg-card p-4 rounded-lg overflow-auto border border-border/50">
-                {JSON.stringify(formData, null, 2)}
-              </pre>
+              <div className="bg-white p-4 rounded-lg border border-green-200">
+                <pre className="text-sm text-gray-700 overflow-auto">
+                  {JSON.stringify(formData, null, 2)}
+                </pre>
+              </div>
             </CardContent>
           </Card>
         )}
       </div>
     </div>
   );
-}
+};
