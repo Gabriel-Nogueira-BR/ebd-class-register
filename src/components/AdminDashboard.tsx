@@ -117,14 +117,14 @@ export const AdminDashboard = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-secondary/10 to-secondary/5 border-secondary/20">
+      <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             Total de Alunos
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-secondary">{stats.totalStudents}</div>
+          <div className="text-3xl font-bold text-blue-600">{stats.totalStudents}</div>
         </CardContent>
       </Card>
 
@@ -139,14 +139,14 @@ export const AdminDashboard = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+      <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             Registros Hoje
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-blue-600">{stats.todayRegistrations}</div>
+          <div className="text-3xl font-bold text-emerald-600">{stats.todayRegistrations}</div>
         </CardContent>
       </Card>
 

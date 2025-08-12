@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminDashboard } from "@/components/AdminDashboard";
 import { RegistrationsList } from "@/components/RegistrationsList";
 import { StudentsManagement } from "@/components/StudentsManagement";
+import { ReportsTab } from "@/components/ReportsTab";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -72,17 +73,7 @@ const Admin = () => {
           </TabsContent>
 
           <TabsContent value="reports">
-            <Card>
-              <CardHeader>
-                <CardTitle>Relatórios</CardTitle>
-                <CardDescription>
-                  Visualize relatórios detalhados das atividades da EBD
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Relatórios em desenvolvimento...</p>
-              </CardContent>
-            </Card>
+            <ReportsTab />
           </TabsContent>
         </Tabs>
       </div>
