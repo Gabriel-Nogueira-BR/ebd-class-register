@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { CalendarDays, FileText, Download } from "lucide-react";
+import adCamposLogo from "@/assets/ad-campos-logo.png";
 
 interface ReportData {
   totalEnrolled: number;
@@ -204,53 +205,51 @@ export const ReportsTab = () => {
   };
 
   const GeneralReport = () => (
-    <div className="max-w-4xl mx-auto bg-white text-black p-8 min-h-[1050px]" style={{ width: '210mm' }}>
+    <div className="max-w-4xl mx-auto bg-white text-black p-6 min-h-[297mm]" style={{ width: '210mm', height: '297mm' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-orange-500 rounded flex items-center justify-center">
-            <span className="text-white font-bold text-lg">AD</span>
-          </div>
-          <div className="text-center">
-            <h1 className="text-xl font-bold">Catedral das Assembleias de Deus em Campos</h1>
-            <h2 className="text-lg">Secretaria da Escola Bíblica Dominical - EBD</h2>
-            <p className="text-sm">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <img src={adCamposLogo} alt="AD Campos Logo" className="w-12 h-12" />
+          <div>
+            <h1 className="text-lg font-bold">Catedral das Assembleias de Deus em Campos</h1>
+            <h2 className="text-base">Secretaria da Escola Bíblica Dominical - EBD</h2>
+            <p className="text-xs text-gray-600">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold">Ano</p>
-          <p className="text-4xl font-bold">2025</p>
+          <p className="text-lg font-bold">Ano</p>
+          <p className="text-3xl font-bold">2025</p>
         </div>
       </div>
 
-      <h3 className="text-xl font-bold text-center mb-6">RELATÓRIO DA ESCOLA BÍBLICA DOMINICAL</h3>
+      <h3 className="text-lg font-bold text-center mb-4">RELATÓRIO DA ESCOLA BÍBLICA DOMINICAL</h3>
       
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-end items-center mb-4">
         <p><strong>Data:</strong> {selectedDate ? new Date(selectedDate).toLocaleDateString('pt-BR') : ''}</p>
       </div>
 
       {/* Statistics Grid */}
-      <div className="grid grid-cols-2 gap-6 mb-6">
-        <div className="space-y-4">
-          <div className="border border-black p-2">
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="space-y-2">
+          <div className="border border-black p-2 text-sm">
             <div className="flex justify-between">
               <span>ALUNOS MATRICULADOS:</span>
               <span>{reportData?.totalEnrolled || 0}</span>
             </div>
           </div>
-          <div className="border border-black p-2">
+          <div className="border border-black p-2 text-sm">
             <div className="flex justify-between">
               <span>ALUNOS PRESENTES:</span>
               <span>{reportData?.totalPresent || 0}</span>
             </div>
           </div>
-          <div className="border border-black p-2">
+          <div className="border border-black p-2 text-sm">
             <div className="flex justify-between">
               <span>ALUNOS VISITANTES:</span>
               <span>{reportData?.totalVisitors || 0}</span>
             </div>
           </div>
-          <div className="border border-black p-2">
+          <div className="border border-black p-2 text-sm">
             <div className="flex justify-between">
               <span>ALUNOS AUSENTES:</span>
               <span>{reportData?.totalAbsent || 0}</span>
@@ -258,14 +257,14 @@ export const ReportsTab = () => {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="border border-black p-2">
+        <div className="space-y-2">
+          <div className="border border-black p-2 text-sm">
             <div className="flex justify-between">
               <span>TOTAL DE OFERTAS EBD:</span>
               <span>R$ {reportData?.totalOffering.toFixed(2) || '0,00'}</span>
             </div>
           </div>
-          <div className="border border-black p-2">
+          <div className="border border-black p-2 text-sm">
             <div className="flex justify-between">
               <span>TOTAL DE REVISTAS EBD, INCLUINDO PROFESSORES:</span>
               <span>{reportData?.totalMagazines || 0}</span>
@@ -275,38 +274,50 @@ export const ReportsTab = () => {
       </div>
 
       {/* Total Present */}
-      <div className="border border-black p-2 mb-6 bg-gray-100">
-        <div className="flex justify-between font-bold">
+      <div className="border border-black p-2 mb-4 text-sm">
+        <div className="flex justify-between">
           <span>TOTAL DE ALUNOS PRESENTES (alunos presentes + alunos visitantes):</span>
           <span>{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</span>
         </div>
       </div>
 
       {/* Magazine Usage */}
-      <div className="space-y-2 mb-6">
-        <div className="flex justify-between">
-          <span>TOTAL DE REVISTAS UTILIZADAS (Crianças e Juniores):</span>
-          <span>{reportData?.magazinesByCategory.children || 0}</span>
+      <div className="space-y-1 mb-4 text-sm">
+        <div className="border border-black p-2">
+          <div className="flex justify-between">
+            <span>TOTAL DE REVISTAS UTILIZADAS (Crianças e Juniores):</span>
+            <span>{reportData?.magazinesByCategory.children || 0}</span>
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span>TOTAL DE REVISTAS UTILIZADAS (Adolescentes):</span>
-          <span>{reportData?.magazinesByCategory.adolescents || 0}</span>
+        <div className="border border-black p-2">
+          <div className="flex justify-between">
+            <span>TOTAL DE REVISTAS UTILIZADAS (Adolescentes):</span>
+            <span>{reportData?.magazinesByCategory.adolescents || 0}</span>
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span>TOTAL DE REVISTAS UTILIZADAS (Jovens):</span>
-          <span>{reportData?.magazinesByCategory.youth || 0}</span>
+        <div className="border border-black p-2">
+          <div className="flex justify-between">
+            <span>TOTAL DE REVISTAS UTILIZADAS (Jovens):</span>
+            <span>{reportData?.magazinesByCategory.youth || 0}</span>
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span>TOTAL DE REVISTAS UTILIZADAS (Novos Convertidos):</span>
-          <span>{reportData?.magazinesByCategory.newConverts || 0}</span>
+        <div className="border border-black p-2">
+          <div className="flex justify-between">
+            <span>TOTAL DE REVISTAS UTILIZADAS (Novos Convertidos):</span>
+            <span>{reportData?.magazinesByCategory.newConverts || 0}</span>
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span>TOTAL DE REVISTAS UTILIZADAS (Adultos):</span>
-          <span>{reportData?.magazinesByCategory.adults || 0}</span>
+        <div className="border border-black p-2">
+          <div className="flex justify-between">
+            <span>TOTAL DE REVISTAS UTILIZADAS (Adultos):</span>
+            <span>{reportData?.magazinesByCategory.adults || 0}</span>
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span>TOTAL DE REVISTAS PROFESSORES EM CLASSE:</span>
-          <span>{reportData?.magazinesByCategory.teachers || 0}</span>
+        <div className="border border-black p-2">
+          <div className="flex justify-between">
+            <span>TOTAL DE REVISTAS PROFESSORES EM CLASSE:</span>
+            <span>{reportData?.magazinesByCategory.teachers || 0}</span>
+          </div>
         </div>
       </div>
 
@@ -357,14 +368,14 @@ export const ReportsTab = () => {
       </div>
 
       {/* Payment Methods */}
-      <div className="flex justify-between mb-6">
-        <div className="border border-black p-2 flex-1 mr-4">
+      <div className="flex gap-4 mb-4">
+        <div className="border border-black p-2 flex-1 text-sm">
           <div className="flex justify-between">
             <span>TOTAL EM DINHEIRO:</span>
             <span>R$ {reportData?.cashTotal.toFixed(2) || '0,00'}</span>
           </div>
         </div>
-        <div className="border border-black p-2 flex-1">
+        <div className="border border-black p-2 flex-1 text-sm">
           <div className="flex justify-between">
             <span>TOTAL EM PIX/CARTÃO:</span>
             <span>R$ {reportData?.pixTotal.toFixed(2) || '0,00'}</span>
@@ -373,35 +384,33 @@ export const ReportsTab = () => {
       </div>
 
       {/* Observations */}
-      <div className="border border-black p-4 mb-6 h-24">
+      <div className="border border-black p-4 mb-4 h-20 text-sm">
         <span className="font-bold">OBSERVAÇÕES:</span>
       </div>
 
       {/* Footer */}
       <div className="text-center mt-auto">
-        <p className="font-bold">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
+        <p className="font-bold text-sm">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
     </div>
   );
 
   const ClassesReport = () => (
-    <div className="max-w-6xl mx-auto bg-white text-black p-8 min-h-[745px]" style={{ width: '297mm' }}>
+    <div className="max-w-full mx-auto bg-white text-black p-6" style={{ width: '297mm', height: '210mm' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-orange-500 rounded flex items-center justify-center">
-            <span className="text-white font-bold text-lg">AD</span>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <img src={adCamposLogo} alt="AD Campos Logo" className="w-12 h-12" />
           <div>
-            <h1 className="text-xl font-bold">Catedral das Assembleias de Deus em Campos</h1>
-            <h2 className="text-lg">Secretaria da Escola Bíblica Dominical - EBD</h2>
-            <p className="text-sm">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
+            <h1 className="text-lg font-bold">Catedral das Assembleias de Deus em Campos</h1>
+            <h2 className="text-base">Secretaria da Escola Bíblica Dominical - EBD</h2>
+            <p className="text-xs text-gray-600">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold">Ano</p>
-          <p className="text-4xl font-bold">2025</p>
-          <p className="mt-2"><strong>Data:</strong> {selectedDate ? new Date(selectedDate).toLocaleDateString('pt-BR') : ''}</p>
+          <p className="text-lg font-bold">Ano</p>
+          <p className="text-3xl font-bold">2025</p>
+          <p className="mt-1 text-sm"><strong>Data:</strong> {selectedDate ? new Date(selectedDate).toLocaleDateString('pt-BR') : ''}</p>
         </div>
       </div>
 
@@ -442,38 +451,38 @@ export const ReportsTab = () => {
       </div>
 
       {/* Totals */}
-      <div className="mt-8">
-        <div className="bg-gray-200 p-4 text-center">
-          <h3 className="text-2xl font-bold mb-4">TOTAL GERAL</h3>
-          <div className="grid grid-cols-6 gap-8 text-center">
+      <div className="mt-6">
+        <div className="bg-black text-white p-4 text-center">
+          <h3 className="text-xl font-bold mb-3">TOTAL GERAL</h3>
+          <div className="grid grid-cols-6 gap-4 text-center text-sm">
             <div>
-              <p className="text-lg font-bold">Matriculados</p>
-              <p className="text-3xl font-bold">{reportData?.totalEnrolled || 0}</p>
+              <p className="font-bold">Matriculados</p>
+              <p className="text-2xl font-bold">{reportData?.totalEnrolled || 0}</p>
             </div>
             <div>
-              <p className="text-lg font-bold">Ausentes</p>
-              <p className="text-3xl font-bold">{reportData?.totalAbsent || 0}</p>
+              <p className="font-bold">Ausentes</p>
+              <p className="text-2xl font-bold">{reportData?.totalAbsent || 0}</p>
             </div>
             <div>
-              <p className="text-lg font-bold">Visitantes</p>
-              <p className="text-3xl font-bold">{reportData?.totalVisitors || 0}</p>
+              <p className="font-bold">Visitantes</p>
+              <p className="text-2xl font-bold">{reportData?.totalVisitors || 0}</p>
             </div>
             <div>
-              <p className="text-lg font-bold">Total Presentes</p>
-              <p className="text-3xl font-bold">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</p>
+              <p className="font-bold">Total Presentes</p>
+              <p className="text-2xl font-bold">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</p>
             </div>
             <div>
-              <p className="text-lg font-bold">Bíblias</p>
-              <p className="text-3xl font-bold">{reportData?.totalBibles || 0}</p>
+              <p className="font-bold">Bíblias</p>
+              <p className="text-2xl font-bold">{reportData?.totalBibles || 0}</p>
             </div>
             <div>
-              <p className="text-lg font-bold">Revistas</p>
-              <p className="text-3xl font-bold">{reportData?.totalMagazines || 0}</p>
+              <p className="font-bold">Revistas</p>
+              <p className="text-2xl font-bold">{reportData?.totalMagazines || 0}</p>
             </div>
           </div>
-          <div className="mt-4">
-            <p className="text-lg font-bold">Ofertas</p>
-            <p className="text-4xl font-bold">R$ {reportData?.totalOffering.toFixed(2) || '0,00'}</p>
+          <div className="mt-3">
+            <p className="font-bold">Ofertas</p>
+            <p className="text-3xl font-bold">R$ {reportData?.totalOffering.toFixed(2) || '0,00'}</p>
           </div>
         </div>
       </div>
