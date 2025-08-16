@@ -205,32 +205,8 @@ export const ReportsTab = () => {
   };
 
   const GeneralReport = () => (
-    <>
-      <style>{`
-        @media print {
-          @page {
-            size: A4;
-            margin: 15mm;
-          }
-          .no-print {
-            display: none !important;
-          }
-          body * {
-            visibility: hidden;
-          }
-          .print-area, .print-area * {
-            visibility: visible;
-          }
-          .print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-        }
-      `}</style>
-      <div className="max-w-4xl mx-auto bg-white text-black p-4 print:p-6 print:m-0 print:max-w-none" 
-           style={{ width: '190mm', minHeight: '250mm' }}>
+    <div className="max-w-4xl mx-auto bg-white text-black p-4" 
+         style={{ width: '190mm', minHeight: '250mm' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -417,37 +393,12 @@ export const ReportsTab = () => {
       <div className="text-center mt-auto">
         <p className="font-bold text-sm">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
-      </div>
-    </>
+    </div>
   );
 
   const ClassesReport = () => (
-    <>
-      <style>{`
-        @media print {
-          @page {
-            size: A4 landscape;
-            margin: 10mm;
-          }
-          .no-print {
-            display: none !important;
-          }
-          body * {
-            visibility: hidden;
-          }
-          .print-area, .print-area * {
-            visibility: visible;
-          }
-          .print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-        }
-      `}</style>
-      <div className="max-w-full mx-auto bg-white text-black p-4 print:p-6 print:m-0 print:max-w-none" 
-           style={{ width: '270mm', minHeight: '180mm' }}>
+    <div className="max-w-full mx-auto bg-white text-black p-4" 
+         style={{ width: '270mm', minHeight: '180mm' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -537,8 +488,7 @@ export const ReportsTab = () => {
           </div>
         </div>
       </div>
-      </div>
-    </>
+    </div>
   );
 
   return (
@@ -611,7 +561,16 @@ export const ReportsTab = () => {
                 </Button>
               </div>
               
-              <div className="border rounded-lg overflow-hidden print-area">
+              <div className="border rounded-lg overflow-hidden">
+                <style>{`
+                  @media print {
+                    @page { 
+                      size: ${reportType === "general" ? "A4" : "A4 landscape"}; 
+                      margin: 10mm; 
+                    }
+                    .no-print { display: none !important; }
+                  }
+                `}</style>
                 {reportType === "general" ? <GeneralReport /> : <ClassesReport />}
               </div>
             </div>
