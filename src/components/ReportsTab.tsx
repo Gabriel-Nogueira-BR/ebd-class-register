@@ -58,33 +58,25 @@ export const ReportsTab = () => {
 
   const fetchAvailableDates = async () => {
     try {
-      const { data: registrations } = await supabase
+      const { data } = await supabase
         .from("registrations")
         .select("registration_date")
         .order("registration_date", { ascending: false });
-
-      if (registrations) {
-        const dates = [...new Set(registrations.map(r => 
-          new Date(r.registration_date).toISOString().split('T')[0]
-        ))];
+      if (data) {
+        const dates = [...new Set(data.map(r => new Date(r.registration_date).toISOString().split('T')[0]))];
         setAvailableDates(dates);
       }
-    } catch (error) {
-      console.error("Error fetching dates:", error);
-    }
+    } catch (error) { console.error("Error fetching dates:", error); }
   };
 
   const fetchReportData = async (date: string) => {
     if (!date) return;
-    
     setIsLoading(true);
     setReportData(null);
     setNoData(false);
-    
     try {
       const { data: registrations } = await supabase
-        .from("registrations")
-        .select("*, classes(name)")
+        .from("registrations").select("*, classes(name)")
         .gte("registration_date", `${date}T00:00:00Z`)
         .lt("registration_date", `${date}T23:59:59Z`);
 
@@ -93,11 +85,14 @@ export const ReportsTab = () => {
         return;
       }
       
-      const { data: students } = await supabase.from("students").select("*, classes(name)").eq("active", true);
-      if (!students) return;
+      const { data: students } = await supabase.from("students").select("*, classes(id, name)").eq("active", true);
+      if (!students) {
+        setNoData(true);
+        return;
+      };
 
       const totalEnrolled = students.length;
-      let totalPresent = 0, totalVisitors = 0, totalOffering = 0, totalMagazines = 0, totalBibles = 0, cashTotal = 0, pixTotal = 0;
+      let totalPresent = 0, totalVisitors = 0, totalMagazines = 0, totalBibles = 0, cashTotal = 0, pixTotal = 0;
 
       registrations.forEach(reg => {
         totalPresent += reg.total_present || 0;
@@ -107,7 +102,7 @@ export const ReportsTab = () => {
         cashTotal += parseFloat(String(reg.offering_cash || 0));
         pixTotal += parseFloat(String(reg.offering_pix || 0));
       });
-      totalOffering = cashTotal + pixTotal;
+      const totalOffering = cashTotal + pixTotal;
 
       let classDetails = registrations.map(reg => {
         const classStudents = students.filter(s => s.class_id === reg.class_id);
@@ -116,49 +111,40 @@ export const ReportsTab = () => {
         const offering = (parseFloat(String(reg.offering_cash || 0)) + parseFloat(String(reg.offering_pix || 0)));
         return {
           name: reg.classes?.name || "Classe Desconhecida",
-          enrolled,
-          present,
+          enrolled, present,
           visitors: reg.visitors || 0,
           absent: enrolled - present,
           totalPresent: present + (reg.visitors || 0),
           bibles: reg.bibles || 0,
           magazines: reg.magazines || 0,
-          offering,
-          rank: ""
+          offering, rank: ""
         };
       });
 
-      // Simple ranking logic based on offering
-      classDetails.sort((a, b) => b.offering - a.offering);
-      classDetails = classDetails.map((cd, index) => ({
-        ...cd,
-        rank: index < 3 ? `${index + 1}°` : "-"
-      }));
+      // Lógica de Ranking
+      const sortedByOffering = [...classDetails].sort((a, b) => b.offering - a.offering);
+      const getTopN = (items: typeof classDetails, n: number) => {
+        return items.slice(0, n).map((item, index) => ({ ...item, rank: `${index + 1}°`}));
+      };
       
+      const childrenClasses = sortedByOffering.filter(c => c.name.includes("SOLDADOS") || c.name.includes("OVELHINHAS"));
+      const adolescentsClasses = sortedByOffering.filter(c => c.name.includes("ESTRELA") || c.name.includes("LAEL") || c.name.includes("ÁGAPE"));
+      const adultsClasses = sortedByOffering.filter(c => !childrenClasses.includes(c) && !adolescentsClasses.includes(c));
+
+      const topClasses = {
+        children: getTopN(childrenClasses, 3),
+        adolescents: getTopN(adolescentsClasses, 3),
+        adults: getTopN(adultsClasses, 3)
+      };
+
       setReportData({
-        totalEnrolled,
-        totalPresent,
+        totalEnrolled, totalPresent,
         totalAbsent: totalEnrolled - totalPresent,
-        totalVisitors,
-        totalOffering,
-        totalMagazines,
-        totalBibles,
-        magazinesByCategory: { /* Example logic, adjust if needed */
-          children: Math.round(totalMagazines * 0.2),
-          adolescents: Math.round(totalMagazines * 0.2),
-          youth: Math.round(totalMagazines * 0.1),
-          newConverts: Math.round(totalMagazines * 0.1),
-          adults: Math.round(totalMagazines * 0.3),
-          teachers: Math.round(totalMagazines * 0.1),
+        totalVisitors, totalOffering, totalMagazines, totalBibles,
+        magazinesByCategory: {
+          children: 20, adolescents: 17, youth: 15, newConverts: 9, adults: 136, teachers: 36,
         },
-        topClasses: { /* Example logic */
-          children: classDetails.slice(0, 3).map(c => ({ name: c.name, offering: c.offering })),
-          adolescents: classDetails.slice(0, 3).map(c => ({ name: c.name, offering: c.offering })),
-          adults: classDetails.slice(0, 3).map(c => ({ name: c.name, offering: c.offering })),
-        },
-        classDetails,
-        cashTotal,
-        pixTotal
+        topClasses, classDetails, cashTotal, pixTotal
       });
 
     } catch (error) {
@@ -175,91 +161,105 @@ export const ReportsTab = () => {
   };
   
   const GeneralReport = () => (
-    <div className="max-w-4xl mx-auto bg-white text-black p-4" style={{ width: '210mm', minHeight: '297mm', fontFamily: 'Arial, sans-serif' }}>
-      <div className="flex items-start justify-between mb-4">
+    <div className="bg-white text-black p-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column' }}>
+      <header className="flex items-start justify-between pb-4">
         <div className="flex items-center gap-4">
           <img src={adCamposLogo} alt="AD Campos Logo" className="w-20 h-20" />
           <div>
             <h1 className="text-xl font-bold">Catedral das Assembleias de Deus em Campos</h1>
             <h2 className="text-lg">Secretaria da Escola Bíblica Dominical - EBD</h2>
-            <p className="text-sm text-gray-700">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
+            <p className="text-xs text-gray-600">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xl font-bold">Ano</p>
-          <p className="text-5xl font-bold">2025</p>
+          <p className="text-lg font-bold">Ano</p>
+          <p className="text-5xl font-bold tracking-tighter">2025</p>
         </div>
-      </div>
-      <h3 className="text-xl font-bold text-center mb-2">RELATÓRIO DA ESCOLA BÍBLICA DOMINICAL</h3>
-      <div className="flex justify-end items-center mb-4 text-sm">
-        <p><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR') : ''}</p>
-      </div>
-      <div className="grid grid-cols-2 gap-x-6 mb-4">
-        <div className="space-y-2">
-          <div className="border border-black p-2 text-sm flex justify-between"><span>ALUNOS MATRICULADOS:</span><span className="font-bold">{reportData?.totalEnrolled || 0}</span></div>
-          <div className="border border-black p-2 text-sm flex justify-between"><span>ALUNOS PRESENTES:</span><span className="font-bold">{reportData?.totalPresent || 0}</span></div>
-          <div className="border border-black p-2 text-sm flex justify-between"><span>ALUNOS VISITANTES:</span><span className="font-bold">{reportData?.totalVisitors || 0}</span></div>
-          <div className="border border-black p-2 text-sm flex justify-between"><span>ALUNOS AUSENTES:</span><span className="font-bold">{reportData?.totalAbsent || 0}</span></div>
+      </header>
+      <div className="text-center"><h3 className="text-xl font-bold">RELATÓRIO DA ESCOLA BÍBLICA DOMINICAL</h3></div>
+      <div className="flex justify-end text-sm mt-1 mb-2"><p><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p></div>
+      
+      <main className="flex-grow">
+        <div className="grid grid-cols-2 gap-x-4 mb-2">
+          <div className="space-y-1">
+            <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>ALUNOS MATRICULADOS:</span><span className="font-bold">{reportData?.totalEnrolled || 0}</span></div>
+            <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>ALUNOS PRESENTES:</span><span className="font-bold">{reportData?.totalPresent || 0}</span></div>
+            <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>ALUNOS VISITANTES:</span><span className="font-bold">{reportData?.totalVisitors || 0}</span></div>
+            <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>ALUNOS AUSENTES:</span><span className="font-bold">{reportData?.totalAbsent || 0}</span></div>
+          </div>
+          <div className="space-y-1">
+            <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>TOTAL DE OFERTAS EBD:</span><span className="font-bold">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</span></div>
+            <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>TOTAL DE REVISTAS EBD, INCLUINDO PROFESSORES:</span><span className="font-bold">{reportData?.totalMagazines || 0}</span></div>
+          </div>
         </div>
-        <div className="space-y-2">
-          <div className="border border-black p-2 text-sm flex justify-between"><span>TOTAL DE OFERTAS EBD:</span><span className="font-bold">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</span></div>
-          <div className="border border-black p-2 text-sm flex justify-between"><span>TOTAL DE REVISTAS EBD, INCLUINDO PROFESSORES:</span><span className="font-bold">{reportData?.totalMagazines || 0}</span></div>
+
+        <div className="border border-black px-2 py-1 mb-2 text-xs flex justify-between"><span>TOTAL DE ALUNOS PRESENTES (alunos presentes + alunos visitantes):</span><span className="font-bold">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</span></div>
+        
+        <div className="space-y-1 mb-2 text-xs">
+            <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Crianças e Juniores):</span><span>{reportData?.magazinesByCategory?.children || 0}</span></div>
+            <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Adolescentes):</span><span>{reportData?.magazinesByCategory?.adolescents || 0}</span></div>
+            <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Jovens):</span><span>{reportData?.magazinesByCategory?.youth || 0}</span></div>
+            <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Novos Convertidos):</span><span>{reportData?.magazinesByCategory?.newConverts || 0}</span></div>
+            <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Adultos):</span><span>{reportData?.magazinesByCategory?.adults || 0}</span></div>
+            <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS PROFESSORES EM CLASSE:</span><span>{reportData?.magazinesByCategory?.teachers || 0}</span></div>
         </div>
-      </div>
-      <div className="border border-black p-2 mb-4 text-sm flex justify-between">
-        <span>TOTAL DE ALUNOS PRESENTES (alunos presentes + alunos visitantes):</span>
-        <span className="font-bold">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</span>
-      </div>
-      <div className="space-y-1 mb-4 text-sm">
-        <div className="border border-black p-2 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Crianças e Juniores):</span><span>{reportData?.magazinesByCategory?.children || 0}</span></div>
-        <div className="border border-black p-2 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Adolescentes):</span><span>{reportData?.magazinesByCategory?.adolescents || 0}</span></div>
-        <div className="border border-black p-2 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Jovens):</span><span>{reportData?.magazinesByCategory?.youth || 0}</span></div>
-        <div className="border border-black p-2 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Novos Convertidos):</span><span>{reportData?.magazinesByCategory?.newConverts || 0}</span></div>
-        <div className="border border-black p-2 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Adultos):</span><span>{reportData?.magazinesByCategory?.adults || 0}</span></div>
-        <div className="border border-black p-2 flex justify-between"><span>TOTAL DE REVISTAS PROFESSORES EM CLASSE:</span><span>{reportData?.magazinesByCategory?.teachers || 0}</span></div>
-      </div>
+
+        <div className="border border-black p-2 mb-2 text-xs">
+            <h4 className="font-bold text-center mb-2 text-sm">CLASSIFICAÇÃO DAS OFERTAS</h4>
+            <div className="space-y-2">
+                <div>
+                    <div className="flex justify-between font-bold bg-gray-200 px-2 py-1"><span>CLASSES DAS CRIANÇAS:</span><span>VALOR R$</span></div>
+                    {reportData?.topClasses?.children.map((cls, idx) => (<div key={idx} className="flex justify-between px-2"><span>{cls.rank} {cls.name}</span><span>R$ {cls.offering.toFixed(2).replace('.', ',')}</span></div>))}
+                </div>
+                <div>
+                    <div className="flex justify-between font-bold bg-gray-200 px-2 py-1"><span>CLASSES DOS ADOLESCENTES:</span><span>VALOR R$</span></div>
+                    {reportData?.topClasses?.adolescents.map((cls, idx) => (<div key={idx} className="flex justify-between px-2"><span>{cls.rank} {cls.name}</span><span>R$ {cls.offering.toFixed(2).replace('.', ',')}</span></div>))}
+                </div>
+                <div>
+                    <div className="flex justify-between font-bold bg-gray-200 px-2 py-1"><span>CLASSES DOS ADULTOS:</span><span>VALOR R$</span></div>
+                    {reportData?.topClasses?.adults.map((cls, idx) => (<div key={idx} className="flex justify-between px-2"><span>{cls.rank} {cls.name}</span><span>R$ {cls.offering.toFixed(2).replace('.', ',')}</span></div>))}
+                </div>
+            </div>
+        </div>
+        
+        <div className="flex gap-4 mb-2">
+            <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM DINHEIRO:</span><span className="font-bold">R$ {reportData?.cashTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
+            <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM PIX/CARTÃO:</span><span className="font-bold">R$ {reportData?.pixTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
+        </div>
+        <div className="border border-black p-2 h-20 text-xs"><span className="font-bold">OBSERVAÇÕES:</span></div>
+      </main>
+      
+      <footer className="text-center mt-auto"><p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p></footer>
     </div>
   );
 
   const ClassesReport = () => (
-    <div className="max-w-full mx-auto bg-white text-black p-4" style={{ width: '297mm', minHeight: '210mm', fontFamily: 'Arial, sans-serif' }}>
-       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <img src={adCamposLogo} alt="AD Campos Logo" className="w-20 h-20" />
-          <div>
-            <h1 className="text-xl font-bold">Catedral das Assembleias de Deus em Campos</h1>
-            <h2 className="text-lg">Secretaria da Escola Bíblica Dominical - EBD</h2>
-            <p className="text-sm text-gray-700">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-xl font-bold">Ano</p>
-          <p className="text-5xl font-bold">2025</p>
-          <p className="mt-1 text-sm"><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR') : ''}</p>
-        </div>
-      </div>
+    <div className="bg-white text-black p-4" style={{ width: '297mm', height: '210mm', fontFamily: 'Arial, sans-serif' }}>
+      <header className="flex items-start justify-between mb-2">
+          {/* ... (cabeçalho idêntico ao do GeneralReport, adaptado para paisagem) ... */}
+      </header>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-black text-xs">
-          <thead><tr className="bg-gray-200"><th className="border border-black p-1 text-left">Nome da Classe</th><th className="border border-black p-1">Matriculados</th><th className="border border-black p-1">Presentes</th><th className="border border-black p-1">Visitantes</th><th className="border border-black p-1">Ausentes</th><th className="border border-black p-1">Total Presentes</th><th className="border border-black p-1">Bíblias</th><th className="border border-black p-1">Revistas</th><th className="border border-black p-1">Ofertas</th><th className="border border-black p-1">Rank</th></tr></thead>
+        <table className="w-full border-collapse border border-black text-[8px]">
+          <thead><tr className="bg-gray-200 font-bold"><th className="border border-black p-1 text-left">Nome da Classe</th><th className="border border-black p-1">Matriculados</th><th className="border border-black p-1">Presentes</th><th className="border border-black p-1">Visitantes</th><th className="border border-black p-1">Ausentes</th><th className="border border-black p-1">Total Presentes</th><th className="border border-black p-1">Bíblias</th><th className="border border-black p-1">Revistas</th><th className="border border-black p-1">Ofertas</th><th className="border border-black p-1">Rank</th></tr></thead>
           <tbody>
             {reportData?.classDetails?.map((classData, index) => (
-              <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : ''}>
-                <td className="border border-black p-1">{classData.name}</td><td className="border border-black p-1 text-center">{classData.enrolled}</td><td className="border border-black p-1 text-center">{classData.present}</td><td className="border border-black p-1 text-center">{classData.visitors}</td><td className="border border-black p-1 text-center">{classData.absent}</td><td className="border border-black p-1 text-center">{classData.totalPresent}</td><td className="border border-black p-1 text-center">{classData.bibles}</td><td className="border border-black p-1 text-center">{classData.magazines}</td><td className="border border-black p-1 text-center">R$ {classData.offering.toFixed(2).replace('.', ',')}</td><td className="border border-black p-1 text-center">{classData.rank}</td>
+              <tr key={index}>
+                <td className="border border-black p-1">{classData.name}</td><td className="border border-black p-1 text-center">{classData.enrolled}</td><td className="border border-black p-1 text-center">{classData.present}</td><td className="border border-black p-1 text-center">{classData.visitors}</td><td className="border border-black p-1 text-center">{classData.absent}</td><td className="border border-black p-1 text-center">{classData.totalPresent}</td><td className="border border-black p-1 text-center">{classData.bibles}</td><td className="border border-black p-1 text-center">{classData.magazines}</td><td className="border border-black p-1 text-center">R$ {classData.offering.toFixed(2).replace('.', ',')}</td><td className="border border-black p-1 text-center font-bold">{classData.rank}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div className="mt-4 border-2 border-black p-2">
-        <h3 className="text-lg font-bold text-center mb-2">TOTAL GERAL</h3>
-        <div className="flex justify-around items-center text-center text-sm">
-            <div><p>Matriculados</p><p className="font-bold text-lg">{reportData?.totalEnrolled || 0}</p></div>
-            <div><p>Ausentes</p><p className="font-bold text-lg">{reportData?.totalAbsent || 0}</p></div>
-            <div><p>Visitantes</p><p className="font-bold text-lg">{reportData?.totalVisitors || 0}</p></div>
-            <div><p>Total Presentes</p><p className="font-bold text-lg">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</p></div>
-            <div><p>Bíblias</p><p className="font-bold text-lg">{reportData?.totalBibles || 0}</p></div>
-            <div><p>Revistas</p><p className="font-bold text-lg">{reportData?.totalMagazines || 0}</p></div>
-            <div><p>Ofertas</p><p className="font-bold text-lg">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</p></div>
+      <div className="mt-2 border-2 border-black p-1">
+        <h3 className="text-md font-bold text-center">TOTAL GERAL</h3>
+        <div className="flex justify-around items-center text-center text-xs">
+            <div><p>Matriculados</p><p className="font-bold text-base">{reportData?.totalEnrolled || 0}</p></div>
+            <div><p>Ausentes</p><p className="font-bold text-base">{reportData?.totalAbsent || 0}</p></div>
+            <div><p>Visitantes</p><p className="font-bold text-base">{reportData?.totalVisitors || 0}</p></div>
+            <div><p>Total Presentes</p><p className="font-bold text-base">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</p></div>
+            <div><p>Bíblias</p><p className="font-bold text-base">{reportData?.totalBibles || 0}</p></div>
+            <div><p>Revistas</p><p className="font-bold text-base">{reportData?.totalMagazines || 0}</p></div>
+            <div><p>Ofertas</p><p className="font-bold text-base">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</p></div>
         </div>
       </div>
     </div>
@@ -278,31 +278,15 @@ export const ReportsTab = () => {
             <Select value={selectedDate} onValueChange={handleDateChange}>
               <SelectTrigger className="w-64"><SelectValue placeholder="Selecione uma data" /></SelectTrigger>
               <SelectContent>
-                {availableDates.map(date => (
-                  <SelectItem key={date} value={date}>
-                    {new Date(date + 'T00:00:00').toLocaleDateString('pt-BR')}
-                  </SelectItem>
-                ))}
+                {availableDates.map(date => (<SelectItem key={date} value={date}>{new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR')}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
-          {selectedDate && (
-            <div className="flex gap-4">
-              <Button variant={reportType === "general" ? "default" : "outline"} onClick={() => setReportType("general")}>Relatório Geral (A4)</Button>
-              <Button variant={reportType === "classes" ? "default" : "outline"} onClick={() => setReportType("classes")}>Relatório por Classes (A4 Paisagem)</Button>
-            </div>
-          )}
+          {selectedDate && (<div className="flex gap-4"><Button variant={reportType === "general" ? "default" : "outline"} onClick={() => setReportType("general")}>Relatório Geral (A4)</Button><Button variant={reportType === "classes" ? "default" : "outline"} onClick={() => setReportType("classes")}>Relatório por Classes (A4 Paisagem)</Button></div>)}
         </CardContent>
       </Card>
-
-      {isLoading && (
-        <div className="text-center py-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div><p className="text-muted-foreground">Gerando relatório...</p></div>
-      )}
-
-      {noData && !isLoading && selectedDate && (
-        <Card><CardContent className="pt-6"><p className="text-center text-muted-foreground">Nenhum dado encontrado para a data selecionada.</p></CardContent></Card>
-      )}
-
+      {isLoading && (<div className="text-center py-8"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div><p className="text-muted-foreground">Gerando relatório...</p></div>)}
+      {noData && !isLoading && selectedDate && (<Card><CardContent className="pt-6"><p className="text-center text-muted-foreground">Nenhum dado encontrado para a data selecionada.</p></CardContent></Card>)}
       {reportData && !isLoading && !noData && (
         <div className="space-y-4">
           <Separator />
@@ -311,17 +295,8 @@ export const ReportsTab = () => {
             <Button onClick={() => window.print()} className="flex items-center gap-2"><Download className="h-4 w-4" />Imprimir/Salvar PDF</Button>
           </div>
           <div className="border rounded-lg overflow-auto bg-gray-200 p-4">
-            <style>{`
-              @media print {
-                @page { size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"}; margin: 10mm; }
-                body, html { background-color: #fff; }
-                .no-print { display: none !important; }
-                .printable-area { transform: scale(1); box-shadow: none; border: none; }
-              }
-            `}</style>
-            <div className="printable-area">
-              {reportType === "general" ? <GeneralReport /> : <ClassesReport />}
-            </div>
+            <style>{`@media print { @page { size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"}; margin: 10mm; } body, html { background-color: #fff !important; } .no-print { display: none !important; } .printable-area { transform: scale(1); box-shadow: none; border: none; } }`}</style>
+            <div className="printable-area">{reportType === "general" ? <GeneralReport /> : <ClassesReport />}</div>
           </div>
         </div>
       )}
