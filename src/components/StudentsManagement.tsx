@@ -12,6 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 interface Student {
   id: number;
   name: string;
+  address: string | null;
+  phone: string | null;
+  birth_date: string | null;
   class_id: number;
   active: boolean;
   classes?: {
@@ -29,6 +32,9 @@ export const StudentsManagement = () => {
   const [classes, setClasses] = useState<Class[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [newStudentName, setNewStudentName] = useState("");
+  const [newStudentAddress, setNewStudentAddress] = useState("");
+  const [newStudentPhone, setNewStudentPhone] = useState("");
+  const [newStudentBirthDate, setNewStudentBirthDate] = useState("");
   const [newStudentClassId, setNewStudentClassId] = useState("");
   const { toast } = useToast();
 
@@ -76,7 +82,7 @@ export const StudentsManagement = () => {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Preencha todos os campos.",
+        description: "Preencha pelo menos o nome e a classe.",
       });
       return;
     }
@@ -87,6 +93,9 @@ export const StudentsManagement = () => {
         .insert([
           {
             name: newStudentName.trim(),
+            address: newStudentAddress.trim(),
+            phone: newStudentPhone.trim(),
+            birth_date: newStudentBirthDate || null,
             class_id: parseInt(newStudentClassId),
             active: true
           }
@@ -100,6 +109,9 @@ export const StudentsManagement = () => {
       });
 
       setNewStudentName("");
+      setNewStudentAddress("");
+      setNewStudentPhone("");
+      setNewStudentBirthDate("");
       setNewStudentClassId("");
       fetchData();
     } catch (error) {
@@ -138,18 +150,7 @@ export const StudentsManagement = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Card className="animate-pulse">
-          <CardHeader>
-            <div className="h-6 bg-muted rounded w-1/3"></div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-40 bg-muted rounded"></div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    // Skeleton Loader
   }
 
   return (
@@ -162,7 +163,7 @@ export const StudentsManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
             <div className="space-y-2">
               <Label htmlFor="student-name">Nome do Aluno</Label>
               <Input
@@ -170,6 +171,33 @@ export const StudentsManagement = () => {
                 value={newStudentName}
                 onChange={(e) => setNewStudentName(e.target.value)}
                 placeholder="Digite o nome completo"
+              />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="student-phone">Telefone</Label>
+              <Input
+                id="student-phone"
+                value={newStudentPhone}
+                onChange={(e) => setNewStudentPhone(e.target.value)}
+                placeholder="(22) 99999-9999"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="student-birth-date">Data de Nascimento</Label>
+              <Input
+                id="student-birth-date"
+                type="date"
+                value={newStudentBirthDate}
+                onChange={(e) => setNewStudentBirthDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2 lg:col-span-1">
+              <Label htmlFor="student-address">Endereço</Label>
+              <Input
+                id="student-address"
+                value={newStudentAddress}
+                onChange={(e) => setNewStudentAddress(e.target.value)}
+                placeholder="Rua, número, bairro"
               />
             </div>
             <div className="space-y-2">
@@ -187,11 +215,9 @@ export const StudentsManagement = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
-              <Button onClick={addStudent} className="w-full">
-                Adicionar Aluno
-              </Button>
-            </div>
+            <Button onClick={addStudent} className="w-full">
+              Adicionar Aluno
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -209,6 +235,7 @@ export const StudentsManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
+                  <TableHead>Telefone</TableHead>
                   <TableHead>Classe</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Ações</TableHead>
@@ -219,6 +246,9 @@ export const StudentsManagement = () => {
                   <TableRow key={student.id}>
                     <TableCell className="font-medium">
                       {student.name}
+                    </TableCell>
+                    <TableCell>
+                      {student.phone || "-"}
                     </TableCell>
                     <TableCell className="max-w-[300px] truncate">
                       {student.classes?.name}
@@ -232,7 +262,7 @@ export const StudentsManagement = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => toggleStudentStatus(student.id, student.active)}
+                        onClick={() => toggleStudentStatus(student.id, student.active ?? false)}
                       >
                         {student.active ? "Desativar" : "Ativar"}
                       </Button>
