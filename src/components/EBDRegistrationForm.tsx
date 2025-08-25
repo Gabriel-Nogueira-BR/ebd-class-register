@@ -116,16 +116,11 @@ export const EBDRegistrationForm = () => {
 
   const uploadFiles = async (): Promise<string[]> => {
     const uploadedUrls: string[] = [];
-
     for (const file of pixFiles) {
       try {
         const timestamp = Date.now();
         const fileName = `${timestamp}-${file.name}`;
-        
-        const { data, error } = await supabase.storage
-          .from("pix-receipts")
-          .upload(fileName, file);
-
+        const { data, error } = await supabase.storage.from("pix-receipts").upload(fileName, file);
         if (error) throw error;
         uploadedUrls.push(data.path);
       } catch (error) {
@@ -133,360 +128,125 @@ export const EBDRegistrationForm = () => {
         throw error;
       }
     }
-
     return uploadedUrls;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!selectedClassId) {
-      toast({
-        variant: "destructive",
-        title: "Erro de validação",
-        description: "Por favor, selecione uma classe.",
-      });
+      toast({ variant: "destructive", title: "Erro de validação", description: "Por favor, selecione uma classe." });
       return;
     }
-
     setIsSubmitting(true);
-
     try {
-      // Upload files if any
       let pixReceiptUrls: string[] = [];
       if (pixFiles.length > 0) {
         pixReceiptUrls = await uploadFiles();
       }
-
-      // Save registration to database
-      const { data, error } = await supabase
-        .from("registrations")
-        .insert([
-          {
-            class_id: parseInt(selectedClassId),
-            present_students: presentStudents,
-            total_present: presentStudents.length,
-            visitors: visitors,
-            bibles: bibles,
-            magazines: magazines,
-            offering_cash: offeringCash,
-            offering_pix: offeringPix,
-            hymn: hymn,
-            pix_receipt_urls: pixReceiptUrls
-          }
-        ])
-        .select();
-
+      const { error } = await supabase.from("registrations").insert([{
+        class_id: parseInt(selectedClassId), present_students: presentStudents,
+        total_present: presentStudents.length, visitors, bibles, magazines,
+        offering_cash: offeringCash, offering_pix: offeringPix, hymn, pix_receipt_urls: pixReceiptUrls
+      }]).select();
       if (error) throw error;
 
       const selectedClass = classes.find(c => c.id === parseInt(selectedClassId));
-      
-      const newFormData: FormData = {
-        registrationDate: new Date().toISOString(),
-        selectedClass: selectedClass?.name || '',
-        presentStudents: presentStudents,
-        totalPresent: presentStudents.length,
-        visitors: visitors,
-        bibles: bibles,
-        magazines: magazines,
-        offeringCash: offeringCash,
-        offeringPix: offeringPix,
-        hymn: hymn
-      };
-
-      setFormData(newFormData);
-      
-      toast({
-        title: "Registro salvo com sucesso!",
-        description: `Classe: ${selectedClass?.name}`,
+      setFormData({
+        registrationDate: new Date().toISOString(), selectedClass: selectedClass?.name || '', presentStudents,
+        totalPresent: presentStudents.length, visitors, bibles, magazines, offeringCash, offeringPix, hymn
       });
-
+      toast({ title: "Registro salvo com sucesso!", description: `Classe: ${selectedClass?.name}` });
     } catch (error) {
       console.error("Error submitting form:", error);
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Erro ao salvar registro. Tente novamente.",
-      });
+      toast({ variant: "destructive", title: "Erro", description: "Erro ao salvar registro. Tente novamente." });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const resetForm = () => {
-    setSelectedClassId('');
-    setPresentStudents([]);
-    setVisitors(0);
-    setBibles(0);
-    setMagazines(0);
-    setOfferingCash(0);
-    setOfferingPix(0);
-    setHymn('');
-    setPixFiles([]);
-    setFormData(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    setSelectedClassId(''); setPresentStudents([]); setVisitors(0); setBibles(0);
+    setMagazines(0); setOfferingCash(0); setOfferingPix(0); setHymn('');
+    setPixFiles([]); setFormData(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleBackToLogin = () => {
-    navigate("/");
-  };
+  const handleBackToLogin = () => navigate("/");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-2 sm:p-4">
       <div className="container mx-auto max-w-4xl">
         <Card className="shadow-xl border-primary/20">
-          <CardHeader className="text-center bg-gradient-to-r from-primary/10 to-secondary/10">
+          <CardHeader className="text-center bg-gradient-to-r from-primary/10 to-secondary/10 p-4">
             <div className="flex items-center justify-between">
-              <Button
-                onClick={handleBackToLogin}
-                variant="outline"
-                size="sm"
-                className="border-primary/20"
-              >
+              <Button onClick={handleBackToLogin} variant="outline" size="sm" className="border-primary/20">
                 ← Voltar
               </Button>
-              <div className="flex-1 text-center">
-                <CardTitle className="text-3xl text-primary flex items-center justify-center gap-3">
-                  <svg
-                    className="w-8 h-8"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                    />
-                  </svg>
+              <div className="flex-1 text-center px-2">
+                <CardTitle className="text-xl sm:text-3xl text-primary flex items-center justify-center gap-2 sm:gap-3">
+                  <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
                   Registro de Aula - EBD
                 </CardTitle>
-                <CardDescription className="text-lg">
-                  Sistema de controle e acompanhamento das aulas da Escola Bíblica Dominical
+                <CardDescription className="text-sm sm:text-lg">
+                  Sistema de controle e acompanhamento das aulas
                 </CardDescription>
               </div>
-              <div className="w-20"></div>
+              <div className="w-16 sm:w-20"></div> {/* Espaçador */}
             </div>
           </CardHeader>
-          <CardContent className="p-8">
+          <CardContent className="p-4 sm:p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Class Selection */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-primary">Selecione a Classe</label>
+                <Label className="text-sm font-semibold text-primary">Selecione a Classe</Label>
                 <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                  <SelectTrigger className="h-12 border-primary/20 focus:border-primary">
-                    <SelectValue placeholder="-- Por favor, escolha uma classe --" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {classes.map((cls) => (
-                      <SelectItem key={cls.id} value={cls.id.toString()}>
-                        {cls.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectTrigger className="h-12 border-primary/20 focus:border-primary"><SelectValue placeholder="-- Por favor, escolha uma classe --" /></SelectTrigger>
+                  <SelectContent>{classes.map((cls) => (<SelectItem key={cls.id} value={cls.id.toString()}>{cls.name}</SelectItem>))}</SelectContent>
                 </Select>
               </div>
-
-              {/* Students List */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-primary">Alunos Presentes</label>
+                <Label className="text-sm font-semibold text-primary">Alunos Presentes</Label>
                 <Card className="border-primary/20">
                   <CardContent className="p-4">
-                    {!selectedClassId ? (
-                      <p className="text-muted-foreground text-center py-8">
-                        Selecione uma classe para ver a lista de alunos.
-                      </p>
-                    ) : studentsInClass.length === 0 ? (
-                      <p className="text-muted-foreground text-center py-8">
-                        Não há alunos cadastrados para esta classe.
-                      </p>
-                    ) : (
-                      <ScrollArea className="h-48">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {studentsInClass.map((student) => (
-                            <div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5">
-                              <Checkbox
-                                id={`student-${student.id}`}
-                                checked={presentStudents.includes(student.name)}
-                                onCheckedChange={(checked) => 
-                                  handleStudentCheck(student.name, checked as boolean)
-                                }
-                              />
-                              <Label 
-                                htmlFor={`student-${student.id}`}
-                                className="flex-1 cursor-pointer text-sm"
-                              >
-                                {student.name}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
+                    {!selectedClassId ? (<p className="text-muted-foreground text-center py-8">Selecione uma classe para ver a lista de alunos.</p>)
+                    : studentsInClass.length === 0 ? (<p className="text-muted-foreground text-center py-8">Não há alunos cadastrados para esta classe.</p>)
+                    : (<ScrollArea className="h-48"><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{studentsInClass.map((student) => (<div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5"><Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} /><Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label></div>))}</div></ScrollArea>)}
                   </CardContent>
                 </Card>
-                {selectedClassId && studentsInClass.length > 0 && (
-                  <p className="text-xs text-primary font-medium">
-                    {presentStudents.length} de {studentsInClass.length} alunos presentes
-                  </p>
-                )}
+                {selectedClassId && studentsInClass.length > 0 && (<p className="text-xs text-primary font-medium">{presentStudents.length} de {studentsInClass.length} alunos presentes</p>)}
+              </div>
+              
+              {/* SEÇÃO DE NÚMEROS RESPONSIVA */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Visitantes</Label><Input type="number" value={visitors} onChange={(e) => setVisitors(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
+                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Bíblias</Label><Input type="number" value={bibles} onChange={(e) => setBibles(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
+                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Revistas</Label><Input type="number" value={magazines} onChange={(e) => setMagazines(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
               </div>
 
-              {/* Numbers Section */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-primary">Visitantes</label>
-                  <Input
-                    type="number"
-                    value={visitors}
-                    onChange={(e) => setVisitors(parseInt(e.target.value) || 0)}
-                    placeholder="0"
-                    min="0"
-                    className="border-primary/20 focus:border-primary"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-primary">Bíblias</label>
-                  <Input
-                    type="number"
-                    value={bibles}
-                    onChange={(e) => setBibles(parseInt(e.target.value) || 0)}
-                    placeholder="0"
-                    min="0"
-                    className="border-primary/20 focus:border-primary"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-primary">Revistas</label>
-                  <Input
-                    type="number"
-                    value={magazines}
-                    onChange={(e) => setMagazines(parseInt(e.target.value) || 0)}
-                    placeholder="0"
-                    min="0"
-                    className="border-primary/20 focus:border-primary"
-                  />
-                </div>
+              {/* SEÇÃO DE OFERTAS RESPONSIVA */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Oferta (Dinheiro)</Label><Input type="number" value={offeringCash} onChange={(e) => setOfferingCash(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary"/></div>
+                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Oferta (PIX/Cartão)</Label><Input type="number" value={offeringPix} onChange={(e) => setOfferingPix(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary"/></div>
               </div>
 
-              {/* Offering Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-primary">Oferta (Dinheiro)</label>
-                  <Input
-                    type="number"
-                    value={offeringCash}
-                    onChange={(e) => setOfferingCash(parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className="border-primary/20 focus:border-primary"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-primary">Oferta (PIX/Cartão)</label>
-                  <Input
-                    type="number"
-                    value={offeringPix}
-                    onChange={(e) => setOfferingPix(parseFloat(e.target.value) || 0)}
-                    placeholder="0.00"
-                    step="0.01"
-                    min="0"
-                    className="border-primary/20 focus:border-primary"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="pix-files" className="text-sm font-semibold text-primary">Comprovantes de PIX (opcional)</Label>
+                <div className="mt-2"><Input ref={fileInputRef} id="pix-files" type="file" accept="image/*,.pdf" multiple onChange={handleFileChange} className="border-primary/20 focus:border-primary"/><p className="text-sm text-muted-foreground mt-1">Anexe imagens ou PDFs dos comprovantes</p>{pixFiles.length > 0 && (<div className="mt-2"><p className="text-sm text-primary font-medium">{pixFiles.length} arquivo(s) selecionado(s):</p><ul className="text-sm text-muted-foreground">{pixFiles.map((file, index) => (<li key={index} className="truncate">• {file.name}</li>))}</ul></div>)}</div>
               </div>
 
-              {/* File Upload Section */}
-              <div className="mb-6">
-                <Label htmlFor="pix-files" className="text-sm font-semibold text-primary">
-                  Comprovantes de PIX (opcional)
-                </Label>
-                <div className="mt-2">
-                  <Input
-                    ref={fileInputRef}
-                    id="pix-files"
-                    type="file"
-                    accept="image/*,.pdf"
-                    multiple
-                    onChange={handleFileChange}
-                    className="border-primary/20 focus:border-primary"
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Anexe imagens ou PDFs dos comprovantes de PIX
-                  </p>
-                  {pixFiles.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-sm text-primary font-medium">
-                        {pixFiles.length} arquivo(s) selecionado(s):
-                      </p>
-                      <ul className="text-sm text-muted-foreground">
-                        {pixFiles.map((file, index) => (
-                          <li key={index} className="truncate">• {file.name}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Hymn Section */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-primary">Hino Escolhido</label>
-                <Input
-                  value={hymn}
-                  onChange={(e) => setHymn(e.target.value)}
-                  placeholder="Ex: 15 - Harpa Cristã"
-                  className="border-primary/20 focus:border-primary"
-                />
+                <Label className="text-sm font-semibold text-primary">Hino Escolhido</Label>
+                <Input value={hymn} onChange={(e) => setHymn(e.target.value)} placeholder="Ex: 15 - Harpa Cristã" className="border-primary/20 focus:border-primary"/>
               </div>
 
-              {/* Submit Button */}
-              <Button 
-                type="submit" 
-                size="lg" 
-                disabled={isSubmitting}
-                className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
-              >
-                {isSubmitting ? "Salvando..." : "Registrar Aula"}
-              </Button>
-
-              {/* Reset Button */}
-              {formData && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="lg" 
-                  onClick={resetForm}
-                  className="w-full border-primary text-primary hover:bg-primary/10"
-                >
-                  Novo Registro
-                </Button>
-              )}
+              <Button type="submit" size="lg" disabled={isSubmitting} className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50">{isSubmitting ? "Salvando..." : "Registrar Aula"}</Button>
+              {formData && (<Button type="button" variant="outline" size="lg" onClick={resetForm} className="w-full border-primary text-primary hover:bg-primary/10">Novo Registro</Button>)}
             </form>
           </CardContent>
         </Card>
-
-        {/* Success Output */}
         {formData && (
           <Card className="mt-6 shadow-xl border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="text-green-800">✅ Registro Salvo com Sucesso!</CardTitle>
-              <CardDescription className="text-green-600">
-                Os dados da aula foram registrados no sistema.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-white p-4 rounded-lg border border-green-200">
-                <pre className="text-sm text-gray-700 overflow-auto">
-                  {JSON.stringify(formData, null, 2)}
-                </pre>
-              </div>
-            </CardContent>
+            <CardHeader><CardTitle className="text-green-800">✅ Registro Salvo com Sucesso!</CardTitle><CardDescription className="text-green-600">Os dados da aula foram registrados no sistema.</CardDescription></CardHeader>
+            <CardContent><div className="bg-white p-4 rounded-lg border border-green-200"><pre className="text-sm text-gray-700 overflow-auto">{JSON.stringify(formData, null, 2)}</pre></div></CardContent>
           </Card>
         )}
       </div>
