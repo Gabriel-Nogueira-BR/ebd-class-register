@@ -4,22 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// REMOVIDO: import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
-interface Class {
-  id: number;
-  name: string;
-}
-interface Student {
-  id: number;
-  name: string;
-  class_id: number;
-  active: boolean;
-}
+interface Class { id: number; name: string; }
+interface Student { id: number; name: string; class_id: number; active: boolean; }
 interface FormData {
   registrationDate: string;
   selectedClass: string;
@@ -79,13 +71,16 @@ export const EBDRegistrationForm = () => {
   };
 
   const studentsInClass = students.filter(student => student.class_id === parseInt(selectedClassId));
+
   const handleStudentCheck = (studentName: string, checked: boolean) => {
     setPresentStudents(prev => checked ? [...prev, studentName] : prev.filter(name => name !== studentName));
   };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setPixFiles(files);
   };
+
   const uploadFiles = async (): Promise<string[]> => {
     const uploadedUrls: string[] = [];
     for (const file of pixFiles) {
@@ -161,10 +156,18 @@ export const EBDRegistrationForm = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-primary">Selecione a Classe</Label>
-                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                  <SelectTrigger className="h-12 border-primary/20 focus:border-primary"><SelectValue placeholder="-- Por favor, escolha uma classe --" /></SelectTrigger>
-                  <SelectContent>{classes.map((cls) => (<SelectItem key={cls.id} value={cls.id.toString()}>{cls.name}</SelectItem>))}</SelectContent>
-                </Select>
+                <select
+                  value={selectedClassId}
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                  className="flex h-12 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-primary/20 focus:border-primary"
+                >
+                  <option value="" disabled>-- Por favor, escolha uma classe --</option>
+                  {classes.map((cls) => (
+                    <option key={cls.id} value={cls.id.toString()}>
+                      {cls.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-primary">Alunos Presentes</Label>
@@ -172,64 +175,4 @@ export const EBDRegistrationForm = () => {
                   <CardContent className="p-4">
                     {!selectedClassId ? (<p className="text-muted-foreground text-center py-8">Selecione uma classe para ver a lista de alunos.</p>)
                     : studentsInClass.length === 0 ? (<p className="text-muted-foreground text-center py-8">Não há alunos cadastrados para esta classe.</p>)
-                    : (
-                      <ScrollArea className="h-48">
-                        {/* AQUI ESTÁ A CORREÇÃO PRINCIPAL: removido o 'grid' problemático */}
-                        <div className="space-y-2">
-                          {studentsInClass.map((student) => (
-                            <div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5">
-                              <Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} />
-                              <Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
-                  </CardContent>
-                </Card>
-                {selectedClassId && studentsInClass.length > 0 && (<p className="text-xs text-primary font-medium">{presentStudents.length} de {studentsInClass.length} alunos presentes</p>)}
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Visitantes</Label><Input type="number" value={visitors} onChange={(e) => setVisitors(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
-                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Bíblias</Label><Input type="number" value={bibles} onChange={(e) => setBibles(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
-                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Revistas</Label><Input type="number" value={magazines} onChange={(e) => setMagazines(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Oferta (Dinheiro)</Label><Input type="number" value={offeringCash} onChange={(e) => setOfferingCash(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary"/></div>
-                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Oferta (PIX/Cartão)</Label><Input type="number" value={offeringPix} onChange={(e) => setOfferingPix(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary"/></div>
-              </div>
-
-              <div>
-                <Label htmlFor="pix-files" className="text-sm font-semibold text-primary">Comprovantes de PIX (opcional)</Label>
-                <div className="mt-2"><Input ref={fileInputRef} id="pix-files" type="file" accept="image/*,.pdf" multiple onChange={handleFileChange} className="border-primary/20 focus:border-primary"/><p className="text-sm text-muted-foreground mt-1">Anexe imagens ou PDFs dos comprovantes</p>{pixFiles.length > 0 && (<div className="mt-2"><p className="text-sm text-primary font-medium">{pixFiles.length} arquivo(s) selecionado(s):</p><ul className="text-sm text-muted-foreground">{pixFiles.map((file, index) => (<li key={index} className="truncate">• {file.name}</li>))}</ul></div>)}</div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-primary">Hino Escolhido</Label>
-                <Input value={hymn} onChange={(e) => setHymn(e.target.value)} placeholder="Ex: 15 - Harpa Cristã" className="border-primary/20 focus:border-primary"/>
-              </div>
-              <Button type="submit" size="lg" disabled={isSubmitting} className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50">{isSubmitting ? "Salvando..." : "Registrar Aula"}</Button>
-              {formData && (<Button type="button" variant="outline" size="lg" onClick={resetForm} className="w-full border-primary text-primary hover:bg-primary/10">Novo Registro</Button>)}
-            </form>
-          </CardContent>
-        </Card>
-        
-        {/* --- SEÇÃO DE SUCESSO CORRIGIDA (SEM O JSON) --- */}
-        {formData && (
-          <Card className="mt-6 shadow-xl border-green-200 bg-green-50/70">
-            <CardHeader>
-              <CardTitle className="text-green-800 flex items-center gap-2">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Registro Salvo com Sucesso!
-              </CardTitle>
-              <CardDescription className="text-green-700">
-                Os dados da aula para a classe "{formData.selectedClass}" foram registrados no sistema.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        )}
-      </div>
-    </div>
-  );
-};
+                    : (<ScrollArea className="h-48"><div className="space-y-2">{studentsInClass.map((student) => (<div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5"><Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} /><Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label></div>))}</div></ScrollArea>)}
