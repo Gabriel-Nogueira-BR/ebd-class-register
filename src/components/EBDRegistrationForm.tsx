@@ -10,7 +10,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
-// Interfaces (sem alterações)
 interface Class {
   id: number;
   name: string;
@@ -36,7 +35,6 @@ interface FormData {
 
 export const EBDRegistrationForm = () => {
   const navigate = useNavigate();
-  // Lógica de estado e funções do seu código original (sem alterações)
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
@@ -118,6 +116,7 @@ export const EBDRegistrationForm = () => {
         offering_cash: offeringCash, offering_pix: offeringPix, hymn, pix_receipt_urls: pixReceiptUrls
       }]).select();
       if (error) throw error;
+
       const selectedClass = classes.find(c => c.id === parseInt(selectedClassId));
       setFormData({
         registrationDate: new Date().toISOString(), selectedClass: selectedClass?.name || '', presentStudents,
@@ -173,36 +172,20 @@ export const EBDRegistrationForm = () => {
                   <CardContent className="p-4">
                     {!selectedClassId ? (<p className="text-muted-foreground text-center py-8">Selecione uma classe para ver a lista de alunos.</p>)
                     : studentsInClass.length === 0 ? (<p className="text-muted-foreground text-center py-8">Não há alunos cadastrados para esta classe.</p>)
-                    : (
-                      <ScrollArea className="h-48">
-                        {/* --- AQUI ESTÁ A CORREÇÃO --- */}
-                        {/* Removido o 'grid' e substituído por um 'div' simples com 'space-y-2' para uma lista vertical robusta */}
-                        <div className="space-y-2">
-                          {studentsInClass.map((student) => (
-                            <div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5">
-                              <Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} />
-                              <Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    )}
+                    : (<ScrollArea className="h-48"><div className="space-y-2">{studentsInClass.map((student) => (<div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5"><Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} /><Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label></div>))}</div></ScrollArea>)}
                   </CardContent>
                 </Card>
                 {selectedClassId && studentsInClass.length > 0 && (<p className="text-xs text-primary font-medium">{presentStudents.length} de {studentsInClass.length} alunos presentes</p>)}
               </div>
-              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Visitantes</Label><Input type="number" value={visitors} onChange={(e) => setVisitors(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
                 <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Bíblias</Label><Input type="number" value={bibles} onChange={(e) => setBibles(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
                 <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Revistas</Label><Input type="number" value={magazines} onChange={(e) => setMagazines(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Oferta (Dinheiro)</Label><Input type="number" value={offeringCash} onChange={(e) => setOfferingCash(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary"/></div>
                 <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Oferta (PIX/Cartão)</Label><Input type="number" value={offeringPix} onChange={(e) => setOfferingPix(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary"/></div>
               </div>
-
               <div>
                 <Label htmlFor="pix-files" className="text-sm font-semibold text-primary">Comprovantes de PIX (opcional)</Label>
                 <div className="mt-2"><Input ref={fileInputRef} id="pix-files" type="file" accept="image/*,.pdf" multiple onChange={handleFileChange} className="border-primary/20 focus:border-primary"/><p className="text-sm text-muted-foreground mt-1">Anexe imagens ou PDFs dos comprovantes</p>{pixFiles.length > 0 && (<div className="mt-2"><p className="text-sm text-primary font-medium">{pixFiles.length} arquivo(s) selecionado(s):</p><ul className="text-sm text-muted-foreground">{pixFiles.map((file, index) => (<li key={index} className="truncate">• {file.name}</li>))}</ul></div>)}</div>
@@ -216,10 +199,19 @@ export const EBDRegistrationForm = () => {
             </form>
           </CardContent>
         </Card>
+        
+        {/* --- SEÇÃO DE SUCESSO CORRIGIDA --- */}
         {formData && (
-          <Card className="mt-6 shadow-xl border-green-200 bg-green-50">
-            <CardHeader><CardTitle className="text-green-800">✅ Registro Salvo com Sucesso!</CardTitle><CardDescription className="text-green-600">Os dados da aula foram registrados no sistema.</CardDescription></CardHeader>
-            <CardContent><div className="bg-white p-4 rounded-lg border border-green-200"><pre className="text-sm text-gray-700 overflow-auto">{JSON.stringify(formData, null, 2)}</pre></div></CardContent>
+          <Card className="mt-6 shadow-xl border-green-200 bg-green-50/70">
+            <CardHeader>
+              <CardTitle className="text-green-800 flex items-center gap-2">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Registro Salvo com Sucesso!
+              </CardTitle>
+              <CardDescription className="text-green-700">
+                Os dados da aula para a classe "{formData.selectedClass}" foram registrados no sistema.
+              </CardDescription>
+            </CardHeader>
           </Card>
         )}
       </div>
