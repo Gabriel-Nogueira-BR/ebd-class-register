@@ -36,7 +36,7 @@ interface FormData {
 
 export const EBDRegistrationForm = () => {
   const navigate = useNavigate();
-  // ... (toda a sua lógica de state e funções permanece idêntica)
+  // --- TODA A LÓGICA DE ESTADO E FUNÇÕES DO SEU CÓDIGO ORIGINAL (sem alterações) ---
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
@@ -145,12 +145,11 @@ export const EBDRegistrationForm = () => {
 
   const handleBackToLogin = () => navigate("/");
 
+  // --- JSX COM LAYOUT RESPONSIVO CORRIGIDO ---
   return (
-    // Container principal com padding responsivo
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-2 sm:p-4">
       <div className="container mx-auto max-w-4xl">
         <Card className="shadow-xl border-primary/20">
-          {/* Cabeçalho com padding e tamanhos de fonte responsivos */}
           <CardHeader className="text-center bg-gradient-to-r from-primary/10 to-secondary/10 p-4">
             <div className="flex items-center justify-between">
               <Button onClick={handleBackToLogin} variant="outline" size="sm" className="border-primary/20">← Voltar</Button>
@@ -161,10 +160,9 @@ export const EBDRegistrationForm = () => {
                 </CardTitle>
                 <CardDescription className="text-sm sm:text-lg">Sistema de controle e acompanhamento das aulas da Escola Bíblica Dominical</CardDescription>
               </div>
-              <div className="w-20"></div> {/* Espaçador */}
+              <div className="w-16 sm:w-20"></div>
             </div>
           </CardHeader>
-          {/* Conteúdo do Card com padding responsivo */}
           <CardContent className="p-4 sm:p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
@@ -180,23 +178,21 @@ export const EBDRegistrationForm = () => {
                   <CardContent className="p-4">
                     {!selectedClassId ? (<p className="text-muted-foreground text-center py-8">Selecione uma classe para ver a lista de alunos.</p>)
                     : studentsInClass.length === 0 ? (<p className="text-muted-foreground text-center py-8">Não há alunos cadastrados para esta classe.</p>)
-                    : (<ScrollArea className="h-48"><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">{studentsInClass.map((student) => (<div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5"><Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} /><Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label></div>))}</div></ScrollArea>)}
+                    : (<ScrollArea className="h-48"><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{studentsInClass.map((student) => (<div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5"><Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} /><Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label></div>))}</div></ScrollArea>)}
                   </CardContent>
                 </Card>
                 {selectedClassId && studentsInClass.length > 0 && (<p className="text-xs text-primary font-medium">{presentStudents.length} de {studentsInClass.length} alunos presentes</p>)}
               </div>
               
-              {/* CORREÇÃO: Usa flexbox com quebra de linha para responsividade */}
-              <div className="flex flex-wrap -mx-3">
-                <div className="w-full sm:w-1/3 px-3 mb-6 sm:mb-0"><Label className="text-sm font-semibold text-primary">Visitantes</Label><Input type="number" value={visitors} onChange={(e) => setVisitors(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary mt-2"/></div>
-                <div className="w-full sm:w-1/3 px-3 mb-6 sm:mb-0"><Label className="text-sm font-semibold text-primary">Bíblias</Label><Input type="number" value={bibles} onChange={(e) => setBibles(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary mt-2"/></div>
-                <div className="w-full sm:w-1/3 px-3"><Label className="text-sm font-semibold text-primary">Revistas</Label><Input type="number" value={magazines} onChange={(e) => setMagazines(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary mt-2"/></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Visitantes</Label><Input type="number" value={visitors} onChange={(e) => setVisitors(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
+                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Bíblias</Label><Input type="number" value={bibles} onChange={(e) => setBibles(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
+                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Revistas</Label><Input type="number" value={magazines} onChange={(e) => setMagazines(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
               </div>
-              
-              {/* CORREÇÃO: Usa flexbox com quebra de linha para responsividade */}
-              <div className="flex flex-wrap -mx-3">
-                <div className="w-full sm:w-1/2 px-3 mb-6 sm:mb-0"><Label className="text-sm font-semibold text-primary">Oferta (Dinheiro)</Label><Input type="number" value={offeringCash} onChange={(e) => setOfferingCash(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary mt-2"/></div>
-                <div className="w-full sm:w-1/2 px-3"><Label className="text-sm font-semibold text-primary">Oferta (PIX/Cartão)</Label><Input type="number" value={offeringPix} onChange={(e) => setOfferingPix(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary mt-2"/></div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Oferta (Dinheiro)</Label><Input type="number" value={offeringCash} onChange={(e) => setOfferingCash(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary"/></div>
+                <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Oferta (PIX/Cartão)</Label><Input type="number" value={offeringPix} onChange={(e) => setOfferingPix(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary"/></div>
               </div>
 
               <div>
