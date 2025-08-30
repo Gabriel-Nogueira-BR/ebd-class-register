@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
-// Interfaces (sem alterações)
+// --- Interfaces e Lógica (do seu código original, sem alterações) ---
 interface Class {
   id: number;
   name: string;
@@ -36,7 +36,6 @@ interface FormData {
 
 export const EBDRegistrationForm = () => {
   const navigate = useNavigate();
-  // --- TODA A LÓGICA DE ESTADO E FUNÇÕES DO SEU CÓDIGO ORIGINAL (sem alterações) ---
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
@@ -97,10 +96,7 @@ export const EBDRegistrationForm = () => {
         const { data, error } = await supabase.storage.from("pix-receipts").upload(fileName, file);
         if (error) throw error;
         uploadedUrls.push(data.path);
-      } catch (error) {
-        console.error("Error uploading file:", error);
-        throw error;
-      }
+      } catch (error) { console.error("Error uploading file:", error); throw error; }
     }
     return uploadedUrls;
   };
@@ -184,6 +180,7 @@ export const EBDRegistrationForm = () => {
                 {selectedClassId && studentsInClass.length > 0 && (<p className="text-xs text-primary font-medium">{presentStudents.length} de {studentsInClass.length} alunos presentes</p>)}
               </div>
               
+              {/* Layout original, que é naturalmente responsivo */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Visitantes</Label><Input type="number" value={visitors} onChange={(e) => setVisitors(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
                 <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Bíblias</Label><Input type="number" value={bibles} onChange={(e) => setBibles(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
