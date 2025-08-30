@@ -30,7 +30,6 @@ export const AdminDashboard = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Agora busca tanto as estatísticas quanto as configurações
     const loadData = async () => {
         setIsLoading(true);
         await Promise.all([
@@ -56,7 +55,6 @@ export const AdminDashboard = () => {
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
-      // Mantém como bloqueado em caso de erro
       setAreRegistrationsAllowed(false);
     }
   };
@@ -66,16 +64,11 @@ export const AdminDashboard = () => {
       const { count: totalRegistrations } = await supabase.from("registrations").select("*", { count: "exact", head: true });
       const { count: totalStudents } = await supabase.from("students").select("*", { count: "exact", head: true }).eq("active", true);
       const { count: totalClasses } = await supabase.from("classes").select("*", { count: "exact", head: true });
-
       const today = new Date().toISOString().split('T')[0];
       const { count: todayRegistrations } = await supabase.from("registrations").select("*", { count: "exact", head: true }).gte("registration_date", `${today}T00:00:00Z`).lt("registration_date", `${today}T23:59:59Z`);
-
       const { data: aggregatedData } = await supabase.from("registrations").select("total_present, visitors, offering_cash, offering_pix");
 
-      let totalPresence = 0;
-      let totalVisitors = 0;
-      let totalOfferings = 0;
-
+      let totalPresence = 0, totalVisitors = 0, totalOfferings = 0;
       if (aggregatedData) {
         aggregatedData.forEach((record) => {
           totalPresence += record.total_present || 0;
@@ -83,15 +76,10 @@ export const AdminDashboard = () => {
           totalOfferings += (parseFloat(String(record.offering_cash || 0)) + parseFloat(String(record.offering_pix || 0)));
         });
       }
-
       setStats({
-        totalRegistrations: totalRegistrations || 0,
-        totalStudents: totalStudents || 0,
-        totalClasses: totalClasses || 0,
-        todayRegistrations: todayRegistrations || 0,
-        totalPresence,
-        totalVisitors,
-        totalOfferings,
+        totalRegistrations: totalRegistrations || 0, totalStudents: totalStudents || 0,
+        totalClasses: totalClasses || 0, todayRegistrations: todayRegistrations || 0,
+        totalPresence, totalVisitors, totalOfferings,
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -100,9 +88,10 @@ export const AdminDashboard = () => {
 
   const handlePermissionToggle = async (isChecked: boolean) => {
     try {
+      // CÓDIGO SIMPLIFICADO: Apenas o valor é atualizado. O DB cuida do timestamp.
       const { error } = await supabase
         .from("system_settings")
-        .update({ value: isChecked, updated_at: new Date().toISOString() })
+        .update({ value: isChecked })
         .eq("key", "allow_registrations");
       
       if (error) throw error;
@@ -151,7 +140,6 @@ export const AdminDashboard = () => {
           </div>
         </CardContent>
       </Card>
-      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
           <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total de Classes</CardTitle></CardHeader>
