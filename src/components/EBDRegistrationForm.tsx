@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
-// --- Interfaces e Lógica (do seu código original, sem alterações) ---
+// Interfaces (sem alterações)
 interface Class {
   id: number;
   name: string;
@@ -36,6 +36,7 @@ interface FormData {
 
 export const EBDRegistrationForm = () => {
   const navigate = useNavigate();
+  // Lógica de estado e funções do seu código original (sem alterações)
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
@@ -117,7 +118,6 @@ export const EBDRegistrationForm = () => {
         offering_cash: offeringCash, offering_pix: offeringPix, hymn, pix_receipt_urls: pixReceiptUrls
       }]).select();
       if (error) throw error;
-
       const selectedClass = classes.find(c => c.id === parseInt(selectedClassId));
       setFormData({
         registrationDate: new Date().toISOString(), selectedClass: selectedClass?.name || '', presentStudents,
@@ -141,7 +141,6 @@ export const EBDRegistrationForm = () => {
 
   const handleBackToLogin = () => navigate("/");
 
-  // --- JSX COM CORREÇÃO DE RESPONSIVIDADE E ESTABILIDADE ---
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-2 sm:p-4">
       <div className="container mx-auto max-w-4xl">
@@ -176,7 +175,8 @@ export const EBDRegistrationForm = () => {
                     : studentsInClass.length === 0 ? (<p className="text-muted-foreground text-center py-8">Não há alunos cadastrados para esta classe.</p>)
                     : (
                       <ScrollArea className="h-48">
-                        {/* CORREÇÃO: Removido o 'grid' complexo para garantir compatibilidade */}
+                        {/* --- AQUI ESTÁ A CORREÇÃO --- */}
+                        {/* Removido o 'grid' e substituído por um 'div' simples com 'space-y-2' para uma lista vertical robusta */}
                         <div className="space-y-2">
                           {studentsInClass.map((student) => (
                             <div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5">
