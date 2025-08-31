@@ -7,127 +7,33 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
-      classes: {
+      system_settings: {
         Row: {
-          created_at: string
-          id: number
-          name: string
+          description: string | null
+          key: string
+          updated_at: string | null
+          value: Json | null
         }
         Insert: {
-          created_at?: string
-          id?: number
-          name: string
+          description?: string | null
+          key: string
+          updated_at?: string | null
+          value?: Json | null
         }
         Update: {
-          created_at?: string
-          id?: number
-          name?: string
+          description?: string | null
+          key?: string
+          updated_at?: string | null
+          value?: Json | null
         }
         Relationships: []
-      }
-      registrations: {
-        Row: {
-          bibles: number | null
-          class_id: number | null
-          created_at: string
-          hymn: string | null
-          id: string
-          magazines: number | null
-          offering_cash: number | null
-          offering_pix: number | null
-          pix_receipt_urls: string[] | null
-          present_students: string[] | null
-          registration_date: string
-          total_present: number | null
-          visitors: number | null
-        }
-        Insert: {
-          bibles?: number | null
-          class_id?: number | null
-          created_at?: string
-          hymn?: string | null
-          id?: string
-          magazines?: number | null
-          offering_cash?: number | null
-          offering_pix?: number | null
-          pix_receipt_urls?: string[] | null
-          present_students?: string[] | null
-          registration_date?: string
-          total_present?: number | null
-          visitors?: number | null
-        }
-        Update: {
-          bibles?: number | null
-          class_id?: number | null
-          created_at?: string
-          hymn?: string | null
-          id?: string
-          magazines?: number | null
-          offering_cash?: number | null
-          offering_pix?: number | null
-          pix_receipt_urls?: string[] | null
-          present_students?: string[] | null
-          registration_date?: string
-          total_present?: number | null
-          visitors?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "registrations_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      students: {
-        Row: {
-          active: boolean | null
-          class_id: number | null
-          created_at: string
-          id: number
-          name: string
-          address: string | null
-          phone: string | null
-          birth_date: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          class_id?: number | null
-          created_at?: string
-          id?: number
-          name: string
-          address?: string | null
-          phone?: string | null
-          birth_date?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          class_id?: number | null
-          created_at?: string
-          id?: number
-          name?: string
-          address?: string | null
-          phone?: string | null
-          birth_date?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "students_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-        ]
       }
     }
     Views: {
