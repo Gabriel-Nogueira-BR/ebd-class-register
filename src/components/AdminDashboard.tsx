@@ -41,21 +41,9 @@ export const AdminDashboard = () => {
   }, []);
 
   const fetchSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("system_settings")
-        .select("value")
-        .eq("key", "allow_registrations")
-        .single();
-      
-      if (error) throw error;
-      if (data) {
-        setAreRegistrationsAllowed(data.value as boolean);
-      }
-    } catch (error) {
-      console.error("Error fetching settings:", error);
-      setAreRegistrationsAllowed(false); // Default to false on error
-    }
+    // Por enquanto, vamos usar localStorage para as configurações
+    const savedSetting = localStorage.getItem("allow_registrations");
+    setAreRegistrationsAllowed(savedSetting === "true");
   };
 
   const fetchStats = async () => {
@@ -94,23 +82,13 @@ export const AdminDashboard = () => {
   };
 
   const handlePermissionToggle = async (isChecked: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("system_settings")
-        .update({ value: isChecked })
-        .eq("key", "allow_registrations");
-      
-      if (error) throw error;
-      
-      setAreRegistrationsAllowed(isChecked);
-      toast({
-        title: "Status do Sistema Alterado",
-        description: `Registros e edições agora estão ${isChecked ? "LIBERADOS" : "BLOQUEADOS"}.`,
-      });
-    } catch (error) {
-      console.error("Error updating settings:", error);
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível alterar a permissão." });
-    }
+    // Por enquanto, vamos salvar no localStorage
+    localStorage.setItem("allow_registrations", isChecked.toString());
+    setAreRegistrationsAllowed(isChecked);
+    toast({
+      title: "Status do Sistema Alterado",
+      description: `Registros e edições agora estão ${isChecked ? "LIBERADOS" : "BLOQUEADOS"}.`,
+    });
   };
 
   if (isLoading) {
