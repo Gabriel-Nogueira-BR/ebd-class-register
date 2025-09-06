@@ -14,6 +14,121 @@ export type Database = {
   }
   public: {
     Tables: {
+      classes: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      registrations: {
+        Row: {
+          bibles: number | null
+          class_id: number | null
+          created_at: string
+          hymn: string | null
+          id: string
+          magazines: number | null
+          offering_cash: number | null
+          offering_pix: number | null
+          pix_receipt_urls: string[] | null
+          present_students: string[] | null
+          registration_date: string
+          total_present: number | null
+          visitors: number | null
+        }
+        Insert: {
+          bibles?: number | null
+          class_id?: number | null
+          created_at?: string
+          hymn?: string | null
+          id?: string
+          magazines?: number | null
+          offering_cash?: number | null
+          offering_pix?: number | null
+          pix_receipt_urls?: string[] | null
+          present_students?: string[] | null
+          registration_date?: string
+          total_present?: number | null
+          visitors?: number | null
+        }
+        Update: {
+          bibles?: number | null
+          class_id?: number | null
+          created_at?: string
+          hymn?: string | null
+          id?: string
+          magazines?: number | null
+          offering_cash?: number | null
+          offering_pix?: number | null
+          pix_receipt_urls?: string[] | null
+          present_students?: string[] | null
+          registration_date?: string
+          total_present?: number | null
+          visitors?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          active: boolean | null
+          address: string | null
+          birth_date: string | null
+          class_id: number | null
+          created_at: string
+          id: number
+          name: string
+          phone: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          address?: string | null
+          birth_date?: string | null
+          class_id?: number | null
+          created_at?: string
+          id?: number
+          name: string
+          phone?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          address?: string | null
+          birth_date?: string | null
+          class_id?: number | null
+          created_at?: string
+          id?: number
+          name?: string
+          phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           description: string | null
