@@ -1,187 +1,180 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lock } from "lucide-react";
 
-// ... (Interfaces permanecem as mesmas)
+interface DashboardStats {
+  totalRegistrations: number;
+  totalStudents: number;
+  totalClasses: number;
+  todayRegistrations: number;
+  totalPresence: number;
+  totalVisitors: number;
+  totalOfferings: number;
+}
 
-export const EBDRegistrationForm = () => {
-  const navigate = useNavigate();
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [selectedClassId, setSelectedClassId] = useState<string>('');
-  const [presentStudents, setPresentStudents] = useState<string[]>([]);
-  const [visitors, setVisitors] = useState<number>(0);
-  const [bibles, setBibles] = useState<number>(0);
-  const [magazines, setMagazines] = useState<number>(0);
-  const [offeringCash, setOfferingCash] = useState<number>(0);
-  const [offeringPix, setOfferingPix] = useState<number>(0);
-  const [hymn, setHymn] = useState<string>('');
-  const [pixFiles, setPixFiles] = useState<File[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<FormData | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export const AdminDashboard = () => {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalRegistrations: 0,
+    totalStudents: 0,
+    totalClasses: 0,
+    todayRegistrations: 0,
+    totalPresence: 0,
+    totalVisitors: 0,
+    totalOfferings: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [areRegistrationsAllowed, setAreRegistrationsAllowed] = useState(false);
   const { toast } = useToast();
-  
-  // NOVOS ESTADOS PARA CONTROLE
-  const [isSystemLocked, setIsSystemLocked] = useState(true);
-  const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkSystemStatus = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("system_settings")
-          .select("value")
-          .eq("key", "allow_registrations")
-          .single();
-        if (error) throw error;
-        setIsSystemLocked(!(data?.value as boolean));
-      } catch (error) {
-        console.error("System lock check failed:", error);
-        setIsSystemLocked(true);
-      }
+    const loadInitialData = async () => {
+      setIsLoading(true);
+      await Promise.all([
+        fetchStats(),
+        fetchSettings()
+      ]);
+      setIsLoading(false);
     };
-    checkSystemStatus();
-    fetchClasses();
-    fetchStudents();
+    loadInitialData();
   }, []);
 
-  // Lógica de busca de dados (sem alterações)
-  const fetchClasses = async () => { /* ... */ };
-  const fetchStudents = async () => { /* ... */ };
-
-  const studentsInClass = students.filter(student => student.class_id === parseInt(selectedClassId));
-  const handleStudentCheck = (studentName: string, checked: boolean) => { /* ... */ };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => { /* ... */ };
-  const uploadFiles = async (): Promise<string[]> => { /* ... */ };
-  
-  const resetForm = (clearClass = true) => {
-    if (clearClass) setSelectedClassId('');
-    setPresentStudents([]); setVisitors(0); setBibles(0);
-    setMagazines(0); setOfferingCash(0); setOfferingPix(0); setHymn('');
-    setPixFiles([]); setFormData(null); setEditingRegistrationId(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-  
-  const handleClassSelect = async (classId: string) => {
-    setSelectedClassId(classId);
-    setFormData(null);
-    if (!classId) return;
-
-    const today = new Date().toISOString().split('T')[0];
+  const fetchSettings = async () => {
     try {
       const { data, error } = await supabase
-        .from("registrations")
-        .select("*")
-        .eq("class_id", classId)
-        .gte("registration_date", `${today}T00:00:00Z`)
-        .lt("registration_date", `${today}T23:59:59Z`)
-        .order("created_at", { ascending: false })
-        .limit(1)
+        .from("system_settings")
+        .select("value")
+        .eq("key", "allow_registrations")
         .single();
       
-      if (error || !data) {
-        resetForm(false);
-        setEditingRegistrationId(null);
-        return;
+      if (error) throw error;
+      if (data) {
+        setAreRegistrationsAllowed(data.value as boolean);
       }
-      
-      toast({ title: "Modo de Edição", description: "Um registro para hoje foi encontrado e carregado no formulário." });
-      setPresentStudents(data.present_students || []);
-      setVisitors(data.visitors || 0);
-      setBibles(data.bibles || 0);
-      setMagazines(data.magazines || 0);
-      setOfferingCash(data.offering_cash || 0);
-      setOfferingPix(data.offering_pix || 0);
-      setHymn(data.hymn || '');
-      setEditingRegistrationId(data.id);
-    } catch (err) {
-      console.log("No existing registration for today, starting new one.");
-      resetForm(false);
-      setEditingRegistrationId(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedClassId) { /* ... validação ... */ return; }
-    setIsSubmitting(true);
-    
-    try {
-      let pixReceiptUrls: string[] = [];
-      if (pixFiles.length > 0) pixReceiptUrls = await uploadFiles();
-      
-      const registrationData = {
-        class_id: parseInt(selectedClassId), present_students: presentStudents,
-        total_present: presentStudents.length, visitors, bibles, magazines,
-        offering_cash: offeringCash, offering_pix: offeringPix, hymn, pix_receipt_urls: pixReceiptUrls
-      };
-
-      if (editingRegistrationId) {
-        const { error } = await supabase.from("registrations").update(registrationData).eq("id", editingRegistrationId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("registrations").insert([registrationData]);
-        if (error) throw error;
-      }
-
-      const selectedClass = classes.find(c => c.id === parseInt(selectedClassId));
-      toast({ title: `Registro ${editingRegistrationId ? 'Atualizado' : 'Salvo'} com Sucesso!`, description: `Classe: ${selectedClass?.name}` });
-      
-      // Re-carrega os dados no formulário para confirmar o salvamento
-      handleClassSelect(selectedClassId);
-
     } catch (error) {
-      console.error("Error submitting form:", error);
-      toast({ variant: "destructive", title: "Erro", description: "Erro ao salvar registro. Tente novamente." });
-    } finally {
-      setIsSubmitting(false);
+      console.error("Error fetching settings:", error);
+      setAreRegistrationsAllowed(false);
     }
   };
+
+  const fetchStats = async () => {
+    try {
+      const { count: totalRegistrations } = await supabase.from("registrations").select("*", { count: "exact", head: true });
+      const { count: totalStudents } = await supabase.from("students").select("*", { count: "exact", head: true }).eq("active", true);
+      const { count: totalClasses } = await supabase.from("classes").select("*", { count: "exact", head: true });
+      const today = new Date().toISOString().split('T')[0];
+      const { count: todayRegistrations } = await supabase.from("registrations").select("*", { count: "exact", head: true }).gte("registration_date", `${today}T00:00:00Z`).lt("registration_date", `${today}T23:59:59Z`);
+      const { data: aggregatedData } = await supabase.from("registrations").select("total_present, visitors, offering_cash, offering_pix");
+
+      let totalPresence = 0;
+      let totalVisitors = 0;
+      let totalOfferings = 0;
+
+      if (aggregatedData) {
+        aggregatedData.forEach((record) => {
+          totalPresence += record.total_present || 0;
+          totalVisitors += record.visitors || 0;
+          totalOfferings += (parseFloat(String(record.offering_cash || 0)) + parseFloat(String(record.offering_pix || 0)));
+        });
+      }
+
+      setStats({
+        totalRegistrations: totalRegistrations || 0,
+        totalStudents: totalStudents || 0,
+        totalClasses: totalClasses || 0,
+        todayRegistrations: todayRegistrations || 0,
+        totalPresence,
+        totalVisitors,
+        totalOfferings,
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    }
+  };
+
+  const handlePermissionToggle = async (isChecked: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("system_settings")
+        .update({ value: isChecked })
+        .eq("key", "allow_registrations");
+      
+      if (error) throw error;
+      
+      setAreRegistrationsAllowed(isChecked);
+      toast({
+        title: "Status do Sistema Alterado",
+        description: `Registros e edições agora estão ${isChecked ? "LIBERADOS" : "BLOQUEADOS"}.`,
+      });
+    } catch (error) {
+      console.error("Error updating settings:", error);
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível alterar a permissão." });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[...Array(9)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardHeader className="pb-2"><div className="h-4 bg-muted rounded w-3/4"></div></CardHeader>
+            <CardContent><div className="h-8 bg-muted rounded w-1/2"></div></CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 p-2 sm:p-4">
-      <div className="container mx-auto max-w-4xl">
-        <Card className="shadow-xl border-primary/20">
-          <CardHeader> {/* ... Cabeçalho ... */} </CardHeader>
-          <CardContent className="p-4 sm:p-8">
-            {isSystemLocked ? (
-              <Alert variant="destructive">
-                <Lock className="h-4 w-4" />
-                <AlertTitle>Sistema Bloqueado</AlertTitle>
-                <AlertDescription>
-                  O envio de novos registros e edições está temporariamente bloqueado pelos administradores da EBD.
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-primary">Selecione a Classe</Label>
-                  <Select value={selectedClassId} onValueChange={handleClassSelect} disabled={isSystemLocked}>
-                    <SelectTrigger className="h-12 border-primary/20 focus:border-primary">
-                      <SelectValue placeholder="-- Por favor, escolha uma classe --" />
-                    </SelectTrigger>
-                    <SelectContent>{classes.map((cls) => (<SelectItem key={cls.id} value={cls.id.toString()}>{cls.name}</SelectItem>))}</SelectContent>
-                  </Select>
-                </div>
-                {/* ... Resto do formulário ... */}
-                <Button type="submit" size="lg" disabled={isSubmitting || isSystemLocked} className="w-full ...">
-                  {isSubmitting ? "Salvando..." : (editingRegistrationId ? "Atualizar Registro" : "Registrar Aula")}
-                </Button>
-                {/* ... */}
-              </form>
-            )}
-          </CardContent>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Controle do Sistema</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center space-x-4 rounded-md border p-4">
+            <div className="flex-1 space-y-1">
+              <p className="text-sm font-medium leading-none">Liberar Registros e Edições</p>
+              <p className="text-sm text-muted-foreground">Quando ativado, os secretários de classe podem enviar e editar os relatórios do dia.</p>
+            </div>
+            <Switch
+              checked={areRegistrationsAllowed}
+              onCheckedChange={handlePermissionToggle}
+              aria-readonly
+            />
+          </div>
+        </CardContent>
+      </Card>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total de Classes</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-bold text-primary">{stats.totalClasses}</div></CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total de Alunos</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-bold text-blue-600">{stats.totalStudents}</div></CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Registros Totais</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-bold text-green-600">{stats.totalRegistrations}</div></CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Registros Hoje</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-bold text-emerald-600">{stats.todayRegistrations}</div></CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total de Presenças</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-bold text-purple-600">{stats.totalPresence}</div></CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total de Visitantes</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-bold text-orange-600">{stats.totalVisitors}</div></CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 border-yellow-500/20 md:col-span-2">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total de Ofertas</CardTitle></CardHeader>
+          <CardContent><div className="text-3xl font-bold text-yellow-600">R$ {stats.totalOfferings.toFixed(2).replace('.', ',')}</div></CardContent>
         </Card>
       </div>
     </div>
