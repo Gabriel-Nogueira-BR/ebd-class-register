@@ -150,7 +150,7 @@ export const EBDRegistrationForm = () => {
     const today = new Date().toISOString().split('T')[0];
     try {
       const { data, error } = await supabase.from("registrations").select("*")
-        .eq("class_id", classId).gte("registration_date", `${today}T00:00:00Z`)
+        .eq("class_id", parseInt(classId)).gte("registration_date", `${today}T00:00:00Z`)
         .lt("registration_date", `${today}T23:59:59Z`).order("created_at", { ascending: false })
         .limit(1).single();
       
@@ -292,7 +292,7 @@ export const EBDRegistrationForm = () => {
                   <Input value={hymn} onChange={(e) => setHymn(e.target.value)} placeholder="Ex: 15 - Harpa Cristã" className="border-primary/20 focus:border-primary"/>
                 </div>
                 <Button type="submit" size="lg" disabled={isSubmitting || isSystemLocked} className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50">{isSubmitting ? "Salvando..." : (editingRegistrationId ? "Atualizar Registro" : "Registrar Aula")}</Button>
-                {formData && (<Button type="button" variant="outline" size="lg" onClick={resetForm} className="w-full border-primary text-primary hover:bg-primary/10">Novo Registro</Button>)}
+                {formData && (<Button type="button" variant="outline" size="lg" onClick={() => resetForm()} className="w-full border-primary text-primary hover:bg-primary/10">Novo Registro</Button>)}
               </form>
             )}
           </CardContent>
