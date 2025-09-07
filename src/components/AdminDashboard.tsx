@@ -41,9 +41,21 @@ export const AdminDashboard = () => {
   }, []);
 
   const fetchSettings = async () => {
-    // Por enquanto, vamos usar localStorage para as configurações
-    const savedSetting = localStorage.getItem("allow_registrations");
-    setAreRegistrationsAllowed(savedSetting === "true");
+    try {
+      const { data, error } = await supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "allow_registrations")
+        .single();
+      
+      if (error) throw error;
+      if (data) {
+        setAreRegistrationsAllowed(data.value as boolean);
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      setAreRegistrationsAllowed(false);
+    }
   };
 
   const fetchStats = async () => {
@@ -55,9 +67,7 @@ export const AdminDashboard = () => {
       const { count: todayRegistrations } = await supabase.from("registrations").select("*", { count: "exact", head: true }).gte("registration_date", `${today}T00:00:00Z`).lt("registration_date", `${today}T23:59:59Z`);
       const { data: aggregatedData } = await supabase.from("registrations").select("total_present, visitors, offering_cash, offering_pix");
 
-      let totalPresence = 0;
-      let totalVisitors = 0;
-      let totalOfferings = 0;
+      let totalPresence = 0, totalVisitors = 0, totalOfferings = 0;
 
       if (aggregatedData) {
         aggregatedData.forEach((record) => {
@@ -82,13 +92,23 @@ export const AdminDashboard = () => {
   };
 
   const handlePermissionToggle = async (isChecked: boolean) => {
-    // Por enquanto, vamos salvar no localStorage
-    localStorage.setItem("allow_registrations", isChecked.toString());
-    setAreRegistrationsAllowed(isChecked);
-    toast({
-      title: "Status do Sistema Alterado",
-      description: `Registros e edições agora estão ${isChecked ? "LIBERADOS" : "BLOQUEADOS"}.`,
-    });
+    try {
+      const { error } = await supabase
+        .from("system_settings")
+        .update({ value: isChecked })
+        .eq("key", "allow_registrations");
+      
+      if (error) throw error;
+      
+      setAreRegistrationsAllowed(isChecked);
+      toast({
+        title: "Status do Sistema Alterado",
+        description: `Registros e edições agora estão ${isChecked ? "LIBERADOS" : "BLOQUEADOS"}.`,
+      });
+    } catch (error) {
+      console.error("Error updating settings:", error);
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível alterar a permissão." });
+    }
   };
 
   if (isLoading) {
