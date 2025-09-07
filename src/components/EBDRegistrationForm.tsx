@@ -55,35 +55,51 @@ export const EBDRegistrationForm = () => {
   const [isSystemLocked, setIsSystemLocked] = useState(true);
   const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const checkSystemStatus = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("system_settings")
-          .select("value")
-          .eq("key", "allow_registrations")
-          .single();
-        if (error) throw error;
-        setIsSystemLocked(!(data?.value as boolean));
-      } catch (error) {
-        console.error("System lock check failed:", error);
-        setIsSystemLocked(true);
-      }
-    };
+  const checkSystemStatus = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "allow_registrations")
+        .single();
+      if (error) throw error;
+      setIsSystemLocked(!(data?.value as boolean));
+    } catch (error) {
+      console.error("System lock check failed:", error);
+      setIsSystemLocked(true);
+    }
+  };
 
-    const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          checkSystemStatus();
-        }
-    };
-    
+  useEffect(() => {
     checkSystemStatus();
     fetchClasses();
     fetchStudents();
+    
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel('registration-settings-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'system_settings',
+        filter: 'key=eq.allow_registrations'
+      }, () => {
+        checkSystemStatus();
+      })
+      .subscribe();
+    
+    // Check status when page becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkSystemStatus();
+      }
+    };
+    
     document.addEventListener('visibilitychange', handleVisibilityChange);
-
+    
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      supabase.removeChannel(channel);
     };
   }, []);
 

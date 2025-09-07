@@ -38,6 +38,26 @@ export const AdminDashboard = () => {
       setIsLoading(false);
     };
     loadInitialData();
+    
+    // Subscribe to system_settings changes for real-time sync
+    const channel = supabase
+      .channel('admin-settings-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'system_settings',
+        filter: 'key=eq.allow_registrations'
+      }, () => {
+        fetchSettings();
+      })
+      .subscribe();
+    
+    const interval = setInterval(fetchStats, 60000);
+    
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchSettings = async () => {
