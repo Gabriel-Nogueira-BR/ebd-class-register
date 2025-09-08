@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 interface DashboardStats {
@@ -25,6 +26,10 @@ export const AdminDashboard = () => {
     totalOfferings: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [allowRegistrations, setAllowRegistrations] = useState(() => {
+    const stored = localStorage.getItem('allowRegistrations');
+    return stored !== 'false';
+  });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -76,6 +81,18 @@ export const AdminDashboard = () => {
     }
   };
 
+  const handleToggleRegistrations = () => {
+    const newValue = !allowRegistrations;
+    setAllowRegistrations(newValue);
+    localStorage.setItem('allowRegistrations', String(newValue));
+    
+    toast({
+      title: newValue ? "Formulário Liberado" : "Formulário Bloqueado",
+      description: newValue 
+        ? "Os secretários de classe podem enviar registros" 
+        : "Apenas visualização está disponível",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -92,6 +109,25 @@ export const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Controle de Liberação do Formulário */}
+      <Card className="bg-gradient-to-br from-slate-500/10 to-slate-500/5 border-slate-500/20">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Controle de Acesso ao Formulário</CardTitle>
+          <CardDescription>
+            Controle se os secretários de classe podem enviar registros
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center space-x-2">
+          <Switch
+            id="allow-registrations"
+            checked={allowRegistrations}
+            onCheckedChange={handleToggleRegistrations}
+          />
+          <Label htmlFor="allow-registrations" className="cursor-pointer">
+            {allowRegistrations ? "Formulário Liberado" : "Formulário Bloqueado"}
+          </Label>
+        </CardContent>
+      </Card>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
