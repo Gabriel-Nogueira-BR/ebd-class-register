@@ -25,58 +25,23 @@ export const AdminDashboard = () => {
     totalOfferings: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [areRegistrationsAllowed, setAreRegistrationsAllowed] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
-      await Promise.all([
-        fetchStats(),
-        fetchSettings()
-      ]);
+      await fetchStats();
       setIsLoading(false);
     };
     loadInitialData();
-    
-    // Subscribe to system_settings changes for real-time sync
-    const channel = supabase
-      .channel('admin-settings-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'system_settings',
-        filter: 'key=eq.allow_registrations'
-      }, () => {
-        fetchSettings();
-      })
-      .subscribe();
     
     const interval = setInterval(fetchStats, 60000);
     
     return () => {
       clearInterval(interval);
-      supabase.removeChannel(channel);
     };
   }, []);
 
-  const fetchSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("system_settings")
-        .select("value")
-        .eq("key", "allow_registrations")
-        .single();
-      
-      if (error) throw error;
-      if (data) {
-        setAreRegistrationsAllowed(data.value as boolean);
-      }
-    } catch (error) {
-      console.error("Error fetching settings:", error);
-      setAreRegistrationsAllowed(false);
-    }
-  };
 
   const fetchStats = async () => {
     try {
@@ -111,25 +76,6 @@ export const AdminDashboard = () => {
     }
   };
 
-  const handlePermissionToggle = async (isChecked: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("system_settings")
-        .update({ value: isChecked })
-        .eq("key", "allow_registrations");
-      
-      if (error) throw error;
-      
-      setAreRegistrationsAllowed(isChecked);
-      toast({
-        title: "Status do Sistema Alterado",
-        description: `Registros e edições agora estão ${isChecked ? "LIBERADOS" : "BLOQUEADOS"}.`,
-      });
-    } catch (error) {
-      console.error("Error updating settings:", error);
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível alterar a permissão." });
-    }
-  };
 
   if (isLoading) {
     return (
@@ -146,24 +92,6 @@ export const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Controle do Sistema</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-4 rounded-md border p-4">
-            <div className="flex-1 space-y-1">
-              <p className="text-sm font-medium leading-none">Liberar Registros e Edições</p>
-              <p className="text-sm text-muted-foreground">Quando ativado, os secretários de classe podem enviar e editar os relatórios do dia.</p>
-            </div>
-            <Switch
-              checked={areRegistrationsAllowed}
-              onCheckedChange={handlePermissionToggle}
-              aria-readonly
-            />
-          </div>
-        </CardContent>
-      </Card>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">

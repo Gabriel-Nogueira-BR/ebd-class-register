@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lock } from "lucide-react";
+import { Lock, Unlock } from "lucide-react";
 
 interface Class {
   id: number;
@@ -52,55 +52,29 @@ export const EBDRegistrationForm = () => {
   const [formData, setFormData] = useState<FormData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const [isSystemLocked, setIsSystemLocked] = useState(true);
+  const [isSystemLocked, setIsSystemLocked] = useState(() => {
+    // Recupera o estado do localStorage na inicialização
+    const savedState = localStorage.getItem('ebdFormLocked');
+    return savedState === 'true';
+  });
   const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
 
-  const checkSystemStatus = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("system_settings")
-        .select("value")
-        .eq("key", "allow_registrations")
-        .single();
-      if (error) throw error;
-      setIsSystemLocked(!(data?.value as boolean));
-    } catch (error) {
-      console.error("System lock check failed:", error);
-      setIsSystemLocked(true);
-    }
+  // Função para alternar o estado de bloqueio
+  const toggleSystemLock = () => {
+    const newState = !isSystemLocked;
+    setIsSystemLocked(newState);
+    localStorage.setItem('ebdFormLocked', String(newState));
+    toast({
+      title: newState ? "Formulário Bloqueado" : "Formulário Desbloqueado",
+      description: newState 
+        ? "O formulário está bloqueado para edições." 
+        : "O formulário está liberado para registros e edições.",
+    });
   };
 
   useEffect(() => {
-    checkSystemStatus();
     fetchClasses();
     fetchStudents();
-    
-    // Subscribe to real-time changes
-    const channel = supabase
-      .channel('registration-settings-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'system_settings',
-        filter: 'key=eq.allow_registrations'
-      }, () => {
-        checkSystemStatus();
-      })
-      .subscribe();
-    
-    // Check status when page becomes visible
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        checkSystemStatus();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const fetchClasses = async () => {
@@ -248,7 +222,25 @@ export const EBDRegistrationForm = () => {
                 </CardTitle>
                 <CardDescription className="text-sm sm:text-lg">Sistema de controle e acompanhamento das aulas da Escola Bíblica Dominical</CardDescription>
               </div>
-              <div className="w-16 sm:w-20"></div>
+              <Button
+                type="button"
+                variant={isSystemLocked ? "destructive" : "outline"}
+                size="sm"
+                onClick={toggleSystemLock}
+                className="gap-2"
+              >
+                {isSystemLocked ? (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    <span className="hidden sm:inline">Bloqueado</span>
+                  </>
+                ) : (
+                  <>
+                    <Unlock className="h-4 w-4" />
+                    <span className="hidden sm:inline">Liberado</span>
+                  </>
+                )}
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="p-4 sm:p-8">
