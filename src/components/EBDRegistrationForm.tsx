@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-// A importação do Select de shadcn/ui é removida para usar o nativo do HTML
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
@@ -52,16 +51,36 @@ export const EBDRegistrationForm = () => {
   const [formData, setFormData] = useState<FormData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const [isSystemLocked] = useState(() => {
-    // Recupera o estado do localStorage na inicialização
-    const savedState = localStorage.getItem('allowRegistrations');
-    return savedState === 'false';
-  });
+  const [isSystemLocked, setIsSystemLocked] = useState(true);
   const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
 
   useEffect(() => {
+    const checkSystemStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("system_settings")
+          .select("value")
+          .eq("key", "allow_registrations")
+          .single();
+        if (error) throw error;
+        setIsSystemLocked(!(data?.value as boolean));
+      } catch (error) {
+        console.error("System lock check failed:", error);
+        setIsSystemLocked(true); // Bloqueia por segurança
+      }
+    };
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          checkSystemStatus();
+        }
+    };
+    checkSystemStatus();
     fetchClasses();
     fetchStudents();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const fetchClasses = async () => {
@@ -87,16 +106,13 @@ export const EBDRegistrationForm = () => {
   };
 
   const studentsInClass = students.filter(student => student.class_id === parseInt(selectedClassId));
-
   const handleStudentCheck = (studentName: string, checked: boolean) => {
     setPresentStudents(prev => checked ? [...prev, studentName] : prev.filter(name => name !== studentName));
   };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setPixFiles(files);
   };
-
   const uploadFiles = async (): Promise<string[]> => {
     const uploadedUrls: string[] = [];
     for (const file of pixFiles) {
@@ -122,7 +138,10 @@ export const EBDRegistrationForm = () => {
   const handleClassSelect = async (classId: string) => {
     setSelectedClassId(classId);
     setFormData(null);
-    if (!classId) return;
+    if (!classId) {
+        resetForm();
+        return;
+    };
 
     const today = new Date().toISOString().split('T')[0];
     try {
@@ -133,6 +152,7 @@ export const EBDRegistrationForm = () => {
       
       if (error || !data) {
         resetForm(false);
+        setEditingRegistrationId(null);
         return;
       }
       
@@ -148,6 +168,7 @@ export const EBDRegistrationForm = () => {
     } catch (err) {
       console.log("Nenhum registro existente para hoje, iniciando um novo.");
       resetForm(false);
+      setEditingRegistrationId(null);
     }
   };
 
@@ -183,8 +204,6 @@ export const EBDRegistrationForm = () => {
       });
       toast({ title: `Registro ${editingRegistrationId ? 'Atualizado' : 'Salvo'} com Sucesso!`, description: `Classe: ${selectedClass?.name}` });
       
-      handleClassSelect(selectedClassId);
-
     } catch (error) {
       console.error("Error submitting form:", error);
       toast({ variant: "destructive", title: "Erro", description: "Erro ao salvar registro. Tente novamente." });
@@ -209,7 +228,7 @@ export const EBDRegistrationForm = () => {
                 </CardTitle>
                 <CardDescription className="text-sm sm:text-lg">Sistema de controle e acompanhamento das aulas da Escola Bíblica Dominical</CardDescription>
               </div>
-              <div className="w-20"></div>
+              <div className="w-16 sm:w-20"></div>
             </div>
           </CardHeader>
           <CardContent className="p-4 sm:p-8">
@@ -222,7 +241,7 @@ export const EBDRegistrationForm = () => {
                     O envio e a edição de registros estão bloqueados pelos administradores.
                   </AlertDescription>
                 </Alert>
-                <Button variant="outline" onClick={() => navigate("/")}>
+                <Button variant="outline" onClick={handleBackToLogin}>
                   Voltar para a Página Inicial
                 </Button>
               </div>
@@ -234,7 +253,6 @@ export const EBDRegistrationForm = () => {
                     value={selectedClassId}
                     onChange={(e) => handleClassSelect(e.target.value)}
                     className="flex h-12 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 border-primary/20 focus:border-primary"
-                    disabled={isSystemLocked}
                   >
                     <option value="" disabled>-- Por favor, escolha uma classe --</option>
                     {classes.map((cls) => (<option key={cls.id} value={cls.id.toString()}>{cls.name}</option>))}
@@ -269,7 +287,7 @@ export const EBDRegistrationForm = () => {
                   <Input value={hymn} onChange={(e) => setHymn(e.target.value)} placeholder="Ex: 15 - Harpa Cristã" className="border-primary/20 focus:border-primary"/>
                 </div>
                 <Button type="submit" size="lg" disabled={isSubmitting || isSystemLocked} className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50">{isSubmitting ? "Salvando..." : (editingRegistrationId ? "Atualizar Registro" : "Registrar Aula")}</Button>
-                {formData && (<Button type="button" variant="outline" size="lg" onClick={() => resetForm()} className="w-full border-primary text-primary hover:bg-primary/10">Novo Registro</Button>)}
+                {formData && (<Button type="button" variant="outline" size="lg" onClick={() => resetForm(true)} className="w-full border-primary text-primary hover:bg-primary/10">Novo Registro</Button>)}
               </form>
             )}
           </CardContent>
