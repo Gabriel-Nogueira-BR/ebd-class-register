@@ -118,7 +118,14 @@ export const EBDRegistrationForm = () => {
     for (const file of pixFiles) {
       try {
         const timestamp = Date.now();
-        const fileName = `${timestamp}-${file.name}`;
+        // Sanitize filename: remove special characters and spaces
+        const sanitizedName = file.name
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Remove accents
+          .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special chars with underscore
+          .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+          .replace(/^_|_$/g, ''); // Remove leading/trailing underscores
+        const fileName = `${timestamp}-${sanitizedName}`;
         const { data, error } = await supabase.storage.from("pix-receipts").upload(fileName, file);
         if (error) throw error;
         uploadedUrls.push(data.path);
