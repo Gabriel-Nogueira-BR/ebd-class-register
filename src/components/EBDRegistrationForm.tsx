@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Lock } from "lucide-react";
@@ -141,6 +142,7 @@ export const EBDRegistrationForm = () => {
     setPresentStudents([]); setVisitors(0); setBibles(0);
     setMagazines(0); setOfferingCash(0); setOfferingPix(0); setHymn('');
     setPixFiles([]); setFormData(null); setEditingRegistrationId(null);
+    setClassNotes(''); setEbdNotes('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -152,11 +154,20 @@ export const EBDRegistrationForm = () => {
         return;
     };
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    
+    // Ajustar para UTC-3 (Brasília)
+    const startDateBrasilia = new Date(startOfDay.getTime() + (3 * 60 * 60 * 1000)).toISOString();
+    const endDateBrasilia = new Date(endOfDay.getTime() + (3 * 60 * 60 * 1000)).toISOString();
+    
     try {
       const { data, error } = await supabase.from("registrations").select("*")
-        .eq("class_id", parseInt(classId)).gte("registration_date", `${today}T00:00:00Z`)
-        .lt("registration_date", `${today}T23:59:59Z`).order("created_at", { ascending: false })
+        .eq("class_id", parseInt(classId))
+        .gte("registration_date", startDateBrasilia)
+        .lt("registration_date", endDateBrasilia)
+        .order("created_at", { ascending: false })
         .limit(1).single();
       
       if (error || !data) {
@@ -173,6 +184,8 @@ export const EBDRegistrationForm = () => {
       setOfferingCash(data.offering_cash || 0);
       setOfferingPix(data.offering_pix || 0);
       setHymn(data.hymn || '');
+      setClassNotes(data.class_notes || '');
+      setEbdNotes(data.ebd_notes || '');
       setEditingRegistrationId(data.id);
     } catch (err) {
       console.log("Nenhum registro existente para hoje, iniciando um novo.");
@@ -195,7 +208,8 @@ export const EBDRegistrationForm = () => {
       const registrationData = {
         class_id: parseInt(selectedClassId), present_students: presentStudents,
         total_present: presentStudents.length, visitors, bibles, magazines,
-        offering_cash: offeringCash, offering_pix: offeringPix, hymn, pix_receipt_urls: pixReceiptUrls
+        offering_cash: offeringCash, offering_pix: offeringPix, hymn, 
+        pix_receipt_urls: pixReceiptUrls, class_notes: classNotes, ebd_notes: ebdNotes
       };
 
       if (editingRegistrationId) {
@@ -294,6 +308,26 @@ export const EBDRegistrationForm = () => {
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-primary">Hino Escolhido</Label>
                   <Input value={hymn} onChange={(e) => setHymn(e.target.value)} placeholder="Ex: 15 - Harpa Cristã" className="border-primary/20 focus:border-primary"/>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-primary">Observações da Classe</Label>
+                  <Textarea 
+                    value={classNotes} 
+                    onChange={(e) => setClassNotes(e.target.value)} 
+                    placeholder="Observações do secretário da classe" 
+                    className="border-primary/20 focus:border-primary" 
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-primary">Observações da EBD</Label>
+                  <Textarea 
+                    value={ebdNotes} 
+                    onChange={(e) => setEbdNotes(e.target.value)} 
+                    placeholder="Observações do secretário da EBD" 
+                    className="border-primary/20 focus:border-primary" 
+                    rows={3}
+                  />
                 </div>
                 <Button type="submit" size="lg" disabled={isSubmitting || isSystemLocked} className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50">{isSubmitting ? "Salvando..." : (editingRegistrationId ? "Atualizar Registro" : "Registrar Aula")}</Button>
                 {formData && (<Button type="button" variant="outline" size="lg" onClick={() => resetForm(true)} className="w-full border-primary text-primary hover:bg-primary/10">Novo Registro</Button>)}

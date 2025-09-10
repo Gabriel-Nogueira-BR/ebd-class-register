@@ -42,6 +42,7 @@ interface ReportData {
   }>;
   cashTotal: number;
   pixTotal: number;
+  ebdNotes?: string;
 }
 
 // Componentes do Relatório (definidos fora para melhor performance)
@@ -111,7 +112,12 @@ const GeneralReport = ({ reportData, selectedDate }: { reportData: ReportData | 
           <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM DINHEIRO:</span><span className="font-bold">R$ {reportData?.cashTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
           <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM PIX/CARTÃO:</span><span className="font-bold">R$ {reportData?.pixTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
       </div>
-      <div className="border border-black p-2 h-20 text-xs"><span className="font-bold">OBSERVAÇÕES:</span></div>
+      <div className="border border-black p-2 h-20 text-xs">
+        <span className="font-bold">OBSERVAÇÕES:</span>
+        {reportData?.ebdNotes && (
+          <p className="mt-1">{reportData.ebdNotes}</p>
+        )}
+      </div>
     </main>
     
     <footer className="text-center mt-auto"><p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p></footer>
@@ -191,7 +197,20 @@ export const ReportsTab = () => {
     setReportData(null);
     setNoData(false);
     try {
-      const { data: registrations } = await supabase.from("registrations").select("*, classes(name)").gte("registration_date", `${date}T00:00:00Z`).lt("registration_date", `${date}T23:59:59Z`);
+      const startDate = new Date(date);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+      
+      // Converter para UTC-3 (Brasília)
+      const startDateBrasilia = new Date(startDate.getTime() + (3 * 60 * 60 * 1000)).toISOString();
+      const endDateBrasilia = new Date(endDate.getTime() + (3 * 60 * 60 * 1000)).toISOString();
+      
+      const { data: registrations } = await supabase
+        .from("registrations")
+        .select("*, classes(name)")
+        .gte("registration_date", startDateBrasilia)
+        .lt("registration_date", endDateBrasilia);
 
       if (!registrations || registrations.length === 0) {
         setNoData(true);
@@ -240,6 +259,15 @@ export const ReportsTab = () => {
       
       classDetails.sort((a, b) => a.name.localeCompare(b.name));
 
+      // Coletar observações da EBD
+      let ebdNotes = '';
+      const ebdNotesArray = registrations
+        .filter(reg => reg.ebd_notes && reg.ebd_notes.trim() !== '')
+        .map(reg => reg.ebd_notes);
+      if (ebdNotesArray.length > 0) {
+        ebdNotes = ebdNotesArray.join(' | ');
+      }
+
       setReportData({
         totalEnrolled, totalPresent, totalAbsent: totalEnrolled - totalPresent, totalVisitors,
         totalOffering, totalMagazines, totalBibles,
@@ -249,7 +277,7 @@ export const ReportsTab = () => {
           adolescents: getTopN(adolescentsClasses, 3),
           adults: getTopN(adultsClasses, 3)
         },
-        classDetails, cashTotal, pixTotal
+        classDetails, cashTotal, pixTotal, ebdNotes
       });
     } catch (error) {
       console.error("Error fetching report data:", error);
