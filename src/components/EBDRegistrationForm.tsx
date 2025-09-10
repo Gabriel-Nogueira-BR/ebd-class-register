@@ -48,6 +48,8 @@ export const EBDRegistrationForm = () => {
   const [hymn, setHymn] = useState<string>('');
   const [pixFiles, setPixFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [classNotes, setClassNotes] = useState<string>('');
+  const [ebdNotes, setEbdNotes] = useState<string>('');
   const [formData, setFormData] = useState<FormData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();

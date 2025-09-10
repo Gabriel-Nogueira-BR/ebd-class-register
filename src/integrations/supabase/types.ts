@@ -36,7 +36,9 @@ export type Database = {
         Row: {
           bibles: number | null
           class_id: number | null
+          class_notes: string | null
           created_at: string
+          ebd_notes: string | null
           hymn: string | null
           id: string
           magazines: number | null
@@ -51,7 +53,9 @@ export type Database = {
         Insert: {
           bibles?: number | null
           class_id?: number | null
+          class_notes?: string | null
           created_at?: string
+          ebd_notes?: string | null
           hymn?: string | null
           id?: string
           magazines?: number | null
@@ -66,7 +70,9 @@ export type Database = {
         Update: {
           bibles?: number | null
           class_id?: number | null
+          class_notes?: string | null
           created_at?: string
+          ebd_notes?: string | null
           hymn?: string | null
           id?: string
           magazines?: number | null
