@@ -24,7 +24,7 @@ const Login = () => {
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === "EBD@adcampos2025") {
+    if (password === "123") {
       sessionStorage.setItem("ebd-admin-access", "true");
       navigate("/admin");
     } else {
