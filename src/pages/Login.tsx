@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UserCog, ArrowLeft } from "lucide-react";
 
 const Login = () => {
-  const [password, setPassword] = useState(123);
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
