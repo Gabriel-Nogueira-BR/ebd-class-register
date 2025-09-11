@@ -28,20 +28,21 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
+      // Utiliza a autenticação real do Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: "ebd.secretaria@adcampos.com", // Email fixo, conforme o seu projeto
+        email: "ebd.secretaria@adcampos.com", // O e-mail fixo para o administrador
         password: password,
       });
 
       if (error) {
-        // Trata erros comuns de forma mais amigável
+        // Fornece uma mensagem de erro mais clara para o utilizador
         if (error.message.includes("Invalid login credentials")) {
           throw new Error("Senha incorreta. Por favor, tente novamente.");
         }
         throw error;
       }
 
-      // Verificação crucial para garantir que a sessão foi estabelecida
+      // Verificação crucial para garantir que a sessão foi estabelecida antes de navegar
       if (!data.session) {
         throw new Error("Não foi possível estabelecer uma sessão. Tente novamente.");
       }
@@ -72,7 +73,7 @@ const Login = () => {
           className="absolute top-4 left-4 flex items-center gap-2 text-muted-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          Voltar
+          Voltar à Página Inicial
         </Button>
         <Card className="shadow-2xl border-primary/20">
           <CardHeader className="text-center">
@@ -108,3 +109,4 @@ const Login = () => {
 };
 
 export default Login;
+
