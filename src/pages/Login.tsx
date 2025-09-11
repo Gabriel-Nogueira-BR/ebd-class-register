@@ -13,6 +13,15 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const handleUserTypeSelection = (type: string) => {
+    setUserType(type);
+    if (type === "class") {
+      navigate("/form");
+    } else if (type === "ebd") {
+      setShowPasswordForm(true);
+    }
+  };
+
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === "123") {
