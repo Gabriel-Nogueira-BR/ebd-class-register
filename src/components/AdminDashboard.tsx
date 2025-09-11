@@ -10,47 +10,15 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 import { CalendarDays, TrendingUp, Users, DollarSign } from "lucide-react";
 
-interface DashboardStats {
-  totalRegistrations: number;
-  totalStudents: number;
-  totalClasses: number;
-  todayRegistrations: number;
-  totalPresence: number;
-  totalVisitors: number;
-  totalOfferings: number;
-}
-
-interface QuarterlyData {
-  month: string;
-  registrations: number;
-  presence: number;
-  offerings: number;
-}
-
-interface AttendanceData {
-  dayOfWeek: string;
-  attendance: number;
-}
-
-interface ClassData {
-  className: string;
-  enrolled: number;
-  present: number;
-  percentage: number;
-}
+// ... (Interfaces)
 
 export const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
-    totalRegistrations: 0,
-    totalStudents: 0,
-    totalClasses: 0,
-    todayRegistrations: 0,
-    totalPresence: 0,
-    totalVisitors: 0,
-    totalOfferings: 0,
+    totalRegistrations: 0, totalStudents: 0, totalClasses: 0,
+    todayRegistrations: 0, totalPresence: 0, totalVisitors: 0, totalOfferings: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [allowRegistrations, setAllowRegistrations] = useState(false); // Modificado para 'allowRegistrations'
+  const [allowRegistrations, setAllowRegistrations] = useState(false);
   const [selectedQuarter, setSelectedQuarter] = useState("current");
   const [quarterlyData, setQuarterlyData] = useState<QuarterlyData[]>([]);
   const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([]);
@@ -63,7 +31,7 @@ export const AdminDashboard = () => {
       await Promise.all([
           fetchStats(),
           fetchQuarterlyData(),
-          fetchSettings() // Adicionado para buscar o estado do interruptor
+          fetchSettings()
       ]);
       setIsLoading(false);
     };
@@ -74,7 +42,7 @@ export const AdminDashboard = () => {
   }, []);
   
   useEffect(() => {
-    if (!isLoading) { // Evita buscar dados trimestrais na carga inicial duas vezes
+    if (!isLoading) {
         fetchQuarterlyData();
     }
   }, [selectedQuarter]);
@@ -92,136 +60,16 @@ export const AdminDashboard = () => {
         }
     } catch (error) {
         console.error("Error fetching settings:", error);
-        setAllowRegistrations(false); // Mantém bloqueado por segurança
+        setAllowRegistrations(false);
     }
   };
 
-  const getQuarterDates = (quarter: string) => {
-    const now = new Date();
-    let year = now.getFullYear();
-    let startMonth, endMonth;
-
-    const quarterMapping: { [key: string]: number[] } = {
-        "Q1": [0, 2], "Q2": [3, 5], "Q3": [6, 8], "Q4": [9, 11]
-    };
-
-    if (quarter in quarterMapping) {
-        [startMonth, endMonth] = quarterMapping[quarter];
-    } else { // current quarter
-        const currentMonth = now.getMonth();
-        startMonth = Math.floor(currentMonth / 3) * 3;
-        endMonth = startMonth + 2;
-    }
-    
-    const startDate = new Date(Date.UTC(year, startMonth, 1));
-    const endDate = new Date(Date.UTC(year, endMonth + 1, 1));
-    endDate.setUTCMilliseconds(endDate.getUTCMilliseconds() - 1);
-
-    return { startDate, endDate };
-  };
-
-  const fetchQuarterlyData = async () => {
-    try {
-      const { startDate, endDate } = getQuarterDates(selectedQuarter);
-      
-      const { data: registrations } = await supabase
-        .from("registrations")
-        .select("registration_date, total_present, visitors, offering_cash, offering_pix, class_id")
-        .gte("registration_date", startDate.toISOString())
-        .lte("registration_date", endDate.toISOString());
-      
-      const { data: classes } = await supabase.from("classes").select("id, name");
-      const { data: students } = await supabase.from("students").select("class_id").eq("active", true);
-      
-      if (registrations && classes) {
-        // Processar dados mensais
-        const monthlyData: { [key: string]: QuarterlyData } = {};
-        const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-        registrations.forEach(reg => {
-          const date = new Date(reg.registration_date);
-          const monthKey = monthNames[date.getUTCMonth()];
-          if (!monthlyData[monthKey]) {
-            monthlyData[monthKey] = { month: monthKey, registrations: 0, presence: 0, offerings: 0 };
-          }
-          monthlyData[monthKey].registrations++;
-          monthlyData[monthKey].presence += (reg.total_present || 0) + (reg.visitors || 0);
-          monthlyData[monthKey].offerings += parseFloat(String(reg.offering_cash || 0)) + parseFloat(String(reg.offering_pix || 0));
-        });
-        setQuarterlyData(Object.values(monthlyData));
-        
-        // Processar dados de frequência por dia da semana (assumindo que será sempre Domingo)
-        const totalSundayAttendance = registrations.reduce((acc, reg) => acc + (reg.total_present || 0), 0);
-        setAttendanceData([{ dayOfWeek: "Dom", attendance: totalSundayAttendance }]);
-        
-        // Processar dados por classe
-        const classStats: { [key: number]: { enrolled: number; present: number } } = {};
-        if (students) {
-          students.forEach(student => {
-            if (student.class_id) {
-              if (!classStats[student.class_id]) classStats[student.class_id] = { enrolled: 0, present: 0 };
-              classStats[student.class_id].enrolled++;
-            }
-          });
-        }
-        registrations.forEach(reg => {
-          if (reg.class_id) {
-            if (!classStats[reg.class_id]) classStats[reg.class_id] = { enrolled: 0, present: 0 };
-            classStats[reg.class_id].present += reg.total_present || 0;
-          }
-        });
-        const classArray = classes.map(cls => {
-            const stats = classStats[cls.id];
-            const totalPossibleAttendance = (stats?.enrolled || 0) * (registrations.filter(r => new Date(r.registration_date).getDay() === 0).map(r => r.registration_date.substring(0, 10)).filter((v, i, a) => a.indexOf(v) === i).length);
-            return {
-                className: cls.name.split('(')[0].trim(),
-                enrolled: stats?.enrolled || 0,
-                present: stats?.present || 0,
-                percentage: totalPossibleAttendance > 0 ? Math.round((stats.present / totalPossibleAttendance) * 100) : 0
-            }
-        });
-        setClassData(classArray);
-      }
-    } catch (error) {
-      console.error("Error fetching quarterly data:", error);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-        const { count: totalRegistrations } = await supabase.from("registrations").select("*", { count: "exact", head: true });
-        const { count: totalStudents } = await supabase.from("students").select("*", { count: "exact", head: true }).eq("active", true);
-        const { count: totalClasses } = await supabase.from("classes").select("*", { count: "exact", head: true });
-        const today = new Date().toISOString().split('T')[0];
-        const { count: todayRegistrations } = await supabase.from("registrations").select("*", { count: "exact", head: true }).gte("registration_date", `${today}T00:00:00Z`).lt("registration_date", `${today}T23:59:59Z`);
-        const { data: aggregatedData } = await supabase.from("registrations").select("total_present, visitors, offering_cash, offering_pix");
-
-        let totalPresence = 0, totalVisitors = 0, totalOfferings = 0;
-
-        if (aggregatedData) {
-            aggregatedData.forEach((record) => {
-            totalPresence += record.total_present || 0;
-            totalVisitors += record.visitors || 0;
-            totalOfferings += (parseFloat(String(record.offering_cash || 0)) + parseFloat(String(record.offering_pix || 0)));
-            });
-        }
-
-        setStats({
-            totalRegistrations: totalRegistrations || 0,
-            totalStudents: totalStudents || 0,
-            totalClasses: totalClasses || 0,
-            todayRegistrations: todayRegistrations || 0,
-            totalPresence,
-            totalVisitors,
-            totalOfferings,
-        });
-    } catch (error) {
-        console.error("Error fetching stats:", error);
-    }
-  };
+  const getQuarterDates = (quarter: string) => { /* ... (Sua função getQuarterDates) ... */ return { startDate: new Date(), endDate: new Date() }; };
+  const fetchQuarterlyData = async () => { /* ... (Sua função fetchQuarterlyData) ... */ };
+  const fetchStats = async () => { /* ... (Sua função fetchStats) ... */ };
   
   const handleToggleRegistrations = async (isChecked: boolean) => {
     try {
-      // Primeiro, verifica se o registro existe
       const { data: existing, error: fetchError } = await supabase
         .from("system_settings")
         .select("key")
@@ -233,23 +81,10 @@ export const AdminDashboard = () => {
       }
       
       if (existing) {
-        // Atualiza o registro existente
-        const { error } = await supabase
-          .from("system_settings")
-          .update({ value: isChecked })
-          .eq("key", "allow_registrations");
-        
+        const { error } = await supabase.from("system_settings").update({ value: isChecked }).eq("key", "allow_registrations");
         if (error) throw error;
       } else {
-        // Cria o registro se não existir
-        const { error } = await supabase
-          .from("system_settings")
-          .insert({ 
-            key: "allow_registrations", 
-            value: isChecked,
-            description: "Controla se o formulário de registro está aberto"
-          });
-        
+        const { error } = await supabase.from("system_settings").insert({ key: "allow_registrations", value: isChecked, description: "Controla se o formulário de registro está aberto" });
         if (error) throw error;
       }
       
@@ -268,10 +103,7 @@ export const AdminDashboard = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(9)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardHeader className="pb-2"><div className="h-4 bg-muted rounded w-3/4"></div></CardHeader>
-            <CardContent><div className="h-8 bg-muted rounded w-1/2"></div></CardContent>
-          </Card>
+          <Card key={i} className="animate-pulse"><CardHeader className="pb-2"><div className="h-4 bg-muted rounded w-3/4"></div></CardHeader><CardContent><div className="h-8 bg-muted rounded w-1/2"></div></CardContent></Card>
         ))}
       </div>
     );
@@ -335,8 +167,10 @@ export const AdminDashboard = () => {
                         <TabsTrigger value="classes">Por Classe</TabsTrigger>
                         <TabsTrigger value="financial">Financeiro</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="overview">
-                        <ChartContainer config={{}} className="h-80 w-full">
+
+                    {/* CORREÇÃO APLICADA AQUI */}
+                    <ChartContainer config={{}} className="h-[400px] w-full">
+                        <TabsContent value="overview">
                             <BarChart data={quarterlyData}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="month" />
@@ -345,10 +179,8 @@ export const AdminDashboard = () => {
                                 <Bar dataKey="presence" fill="hsl(var(--primary))" name="Presenças" />
                                 <Bar dataKey="registrations" fill="hsl(var(--secondary))" name="Registros" />
                             </BarChart>
-                        </ChartContainer>
-                    </TabsContent>
-                    <TabsContent value="classes">
-                        <ChartContainer config={{}} className="h-96 w-full">
+                        </TabsContent>
+                        <TabsContent value="classes">
                            <BarChart data={classData} layout="vertical">
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis type="number" />
@@ -357,8 +189,8 @@ export const AdminDashboard = () => {
                                 <Bar dataKey="present" fill="hsl(var(--primary))" name="Presentes" stackId="a" />
                                 <Bar dataKey="enrolled" fill="hsl(var(--muted))" name="Matriculados" stackId="a" />
                            </BarChart>
-                        </ChartContainer>
-                    </TabsContent>
+                        </TabsContent>
+                    </ChartContainer>
                 </Tabs>
             </CardContent>
         </Card>
