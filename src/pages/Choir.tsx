@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Music4 } from "lucide-react";
+import { Music4, CalendarDays } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Hymn {
   hymn: string;
@@ -14,42 +15,65 @@ const ChoirView = () => {
   const [hymns, setHymns] = useState<Hymn[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const navigate = useNavigate();
 
   useEffect(() => {
+    const fetchAvailableDates = async () => {
+      try {
+        const { data: registrations } = await supabase
+          .from("registrations")
+          .select("registration_date")
+          .not("hymn", "is", null)
+          .neq("hymn", "")
+          .order("registration_date", { ascending: false });
+
+        if (registrations) {
+          const sundays = [...new Set(registrations.map(r => {
+            const date = new Date(r.registration_date);
+            const dayOfWeek = date.getUTCDay();
+            const lastSunday = new Date(date);
+            lastSunday.setUTCDate(date.getUTCDate() - dayOfWeek);
+            return lastSunday.toISOString().split('T')[0];
+          }))];
+          setAvailableDates(sundays);
+          if (sundays.length > 0) {
+            setSelectedDate(sundays[0]); // Seleciona o domingo mais recente por defeito
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching dates:", error);
+      }
+    };
+    fetchAvailableDates();
+  }, []);
+  
+  useEffect(() => {
+    if (!selectedDate) return;
+
     const fetchHymns = async () => {
       setIsLoading(true);
       setError(null);
       
-      // Define a data de hoje e a do último domingo
-      const today = new Date();
-      const dayOfWeek = today.getDay(); // Domingo = 0, Segunda = 1, ...
-      const lastSunday = new Date(today);
-      lastSunday.setDate(today.getDate() - dayOfWeek);
-      
-      const startOfSunday = new Date(lastSunday.getFullYear(), lastSunday.getMonth(), lastSunday.getDate(), 0, 0, 0);
-      const endOfSunday = new Date(lastSunday.getFullYear(), lastSunday.getMonth(), lastSunday.getDate(), 23, 59, 59);
+      const startDate = new Date(selectedDate + 'T00:00:00Z');
+      const endDate = new Date(startDate);
+      endDate.setUTCDate(startDate.getUTCDate() + 1);
 
       try {
         const { data, error } = await supabase
           .from("registrations")
-          .select(`
-            hymn,
-            classes (
-              name
-            )
-          `)
-          .gte("registration_date", startOfSunday.toISOString())
-          .lte("registration_date", endOfSunday.toISOString())
-          .not("hymn", "is", null) // Garante que apenas registros com hinos sejam retornados
-          .neq("hymn", "");       // Garante que hinos vazios não sejam retornados
+          .select("hymn, classes(name)")
+          .gte("registration_date", startDate.toISOString())
+          .lt("registration_date", endDate.toISOString())
+          .not("hymn", "is", null)
+          .neq("hymn", "");
 
         if (error) throw error;
         
         const formattedHymns = data.map(item => ({
           hymn: item.hymn,
-          // @ts-ignore
-          class_name: item.classes?.name || "Classe desconhecida"
+          class_name: (item.classes as { name: string })?.name || "Classe desconhecida"
         }));
 
         setHymns(formattedHymns);
@@ -62,7 +86,7 @@ const ChoirView = () => {
     };
 
     fetchHymns();
-  }, []);
+  }, [selectedDate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary/10 via-background to-blue-500/10 p-4 sm:p-6">
@@ -70,29 +94,44 @@ const ChoirView = () => {
         <Card className="shadow-lg">
           <CardHeader className="text-center">
             <div className="flex items-center justify-between">
-              <Button onClick={() => navigate("/")} variant="outline" size="sm">
-                ← Voltar
-              </Button>
+              <Button onClick={() => navigate("/")} variant="outline" size="sm">← Voltar</Button>
               <div className="flex-1">
                 <CardTitle className="text-2xl sm:text-3xl text-primary flex items-center justify-center gap-3">
                   <Music4 className="h-6 w-6 sm:h-8 sm:w-8" />
                   Hinos para o Louvor
                 </CardTitle>
-                <CardDescription>
-                  Hinos escolhidos pelas classes no último domingo
-                </CardDescription>
+                <CardDescription>Hinos escolhidos pelas classes</CardDescription>
               </div>
-              <div className="w-20"></div> {/* Espaçador */}
+              <div className="w-20"></div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Label htmlFor="date-select" className="flex items-center gap-2 text-muted-foreground">
+                <CalendarDays className="h-5 w-5" />
+                Data:
+              </Label>
+              <Select value={selectedDate} onValueChange={setSelectedDate}>
+                <SelectTrigger id="date-select" className="w-64">
+                  <SelectValue placeholder="Selecione um domingo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDates.map(date => (
+                    <SelectItem key={date} value={date}>
+                      {new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {isLoading ? (
-              <div className="text-center text-muted-foreground">Carregando hinos...</div>
+              <div className="text-center text-muted-foreground py-8">Carregando hinos...</div>
             ) : error ? (
-              <div className="text-center text-destructive">{error}</div>
+              <div className="text-center text-destructive py-8">{error}</div>
             ) : hymns.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
-                Nenhum hino foi registrado no último domingo.
+                Nenhum hino foi registrado na data selecionada.
               </div>
             ) : (
               <div className="space-y-4">
