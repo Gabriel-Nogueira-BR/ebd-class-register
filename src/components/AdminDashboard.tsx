@@ -222,11 +222,15 @@ export const AdminDashboard = () => {
   const handleToggleRegistrations = async (isChecked: boolean) => {
     try {
       // Primeiro, verifica se o registro existe
-      const { data: existing } = await supabase
+      const { data: existing, error: fetchError } = await supabase
         .from("system_settings")
         .select("key")
         .eq("key", "allow_registrations")
         .single();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
       
       if (existing) {
         // Atualiza o registro existente

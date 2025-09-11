@@ -319,16 +319,6 @@ export const EBDRegistrationForm = () => {
                     rows={3}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-primary">Observações da EBD</Label>
-                  <Textarea 
-                    value={ebdNotes} 
-                    onChange={(e) => setEbdNotes(e.target.value)} 
-                    placeholder="Observações do secretário da EBD" 
-                    className="border-primary/20 focus:border-primary" 
-                    rows={3}
-                  />
-                </div>
                 <Button type="submit" size="lg" disabled={isSubmitting || isSystemLocked} className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50">{isSubmitting ? "Salvando..." : (editingRegistrationId ? "Atualizar Registro" : "Registrar Aula")}</Button>
                 {formData && (<Button type="button" variant="outline" size="lg" onClick={() => resetForm(true)} className="w-full border-primary text-primary hover:bg-primary/10">Novo Registro</Button>)}
               </form>
