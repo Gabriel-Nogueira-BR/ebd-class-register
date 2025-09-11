@@ -1,60 +1,105 @@
-```typescript
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { UserCog, ArrowLeft } from "lucide-react";
 
-export const Login = () => {
-  const [email, setEmail] = useState("");
+const Login = () => {
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/admin");
+      }
+    };
+    checkSession();
+  }, [navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    setIsLoading(true);
+    try {
+      // --- CORREÇÃO APLICADA AQUI ---
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: "ebd.secretaria@adcampos.com",
+        password: password,
+      });
 
-    if (error) {
-      toast({ variant: "destructive", title: "Erro", description: error.message });
-    } else {
-      // Redireciona para a área administrativa após login bem-sucedido
+      if (error) {
+        throw new Error("Senha incorreta. Por favor, tente novamente.");
+      }
+
+      // Garante que uma sessão foi criada antes de navegar
+      if (!data.session) {
+        throw new Error("Não foi possível estabelecer uma sessão. Tente novamente.");
+      }
+      
+      toast({
+        title: "Login bem-sucedido!",
+        description: "A redirecionar para o painel de administrador.",
+      });
       navigate("/admin");
-      toast({ title: "Sucesso", description: "Login realizado com sucesso!" });
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro de Login",
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10">
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div>
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="password">Senha</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <Button type="submit">Entrar</Button>
-      </form>
+    <div className="min-h-screen bg-gradient-to-br from-secondary/10 via-background to-blue-500/10 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/')}
+          className="absolute top-4 left-4 flex items-center gap-2 text-muted-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar
+        </Button>
+        <Card className="shadow-2xl border-primary/20">
+          <CardHeader className="text-center">
+            <UserCog className="mx-auto h-12 w-12 text-primary mb-4" />
+            <CardTitle className="text-2xl font-bold">Acesso Administrativo</CardTitle>
+            <CardDescription>
+              Digite a senha para aceder ao painel de controlo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="space-y-2">
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-12 text-center text-lg tracking-widest"
+                />
+              </div>
+              <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
+                {isLoading ? "A entrar..." : "Entrar"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
-```
+
+export default Login;
