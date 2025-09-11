@@ -27,13 +27,19 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: "ebd.secretaria@adcampos.com", // Email fixo
+      // --- CORREÇÃO APLICADA AQUI ---
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: "ebd.secretaria@adcampos.com",
         password: password,
       });
 
       if (error) {
-        throw new Error(error.message || "Senha incorreta. Tente novamente.");
+        throw new Error("Senha incorreta. Por favor, tente novamente.");
+      }
+
+      // Garante que uma sessão foi criada antes de navegar
+      if (!data.session) {
+        throw new Error("Não foi possível estabelecer uma sessão. Tente novamente.");
       }
       
       toast({
