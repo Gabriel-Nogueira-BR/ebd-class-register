@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 import { CalendarDays, FileText, Download } from "lucide-react";
 import adCamposLogo from "@/assets/ad-campos-logo.png";
 
@@ -42,12 +43,11 @@ interface ReportData {
   }>;
   cashTotal: number;
   pixTotal: number;
-  ebdNotes?: string;
 }
 
 // Componentes do Relatório (definidos fora para melhor performance)
-const GeneralReport = ({ reportData, selectedDate }: { reportData: ReportData | null; selectedDate: string }) => (
-  <div className="bg-white text-black p-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '10pt' }}>
+const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
+  <div className="bg-white text-black p-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '10pt', position: 'relative' }}>
     <header className="flex items-start justify-between pb-4">
       <div className="flex items-center gap-4">
         <img src={adCamposLogo} alt="AD Campos Logo" className="w-[75px] h-[75px]" />
@@ -114,13 +114,13 @@ const GeneralReport = ({ reportData, selectedDate }: { reportData: ReportData | 
       </div>
       <div className="border border-black p-2 h-20 text-xs">
         <span className="font-bold">OBSERVAÇÕES:</span>
-        {reportData?.ebdNotes && (
-          <p className="mt-1">{reportData.ebdNotes}</p>
+        {ebdObservations && (
+          <p className="mt-1">{ebdObservations}</p>
         )}
       </div>
     </main>
     
-    <footer className="text-center mt-auto"><p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p></footer>
+    <footer className="text-center" style={{ position: 'absolute', bottom: '10mm', left: 0, right: 0 }}><p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p></footer>
   </div>
 );
 
@@ -176,6 +176,7 @@ export const ReportsTab = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [noData, setNoData] = useState(false);
   const [reportType, setReportType] = useState<"general" | "classes">("general");
+  const [ebdObservations, setEbdObservations] = useState<string>("");
 
   useEffect(() => {
     fetchAvailableDates();
@@ -259,14 +260,7 @@ export const ReportsTab = () => {
       
       classDetails.sort((a, b) => a.name.localeCompare(b.name));
 
-      // Coletar observações da EBD
-      let ebdNotes = '';
-      const ebdNotesArray = registrations
-        .filter(reg => reg.ebd_notes && reg.ebd_notes.trim() !== '')
-        .map(reg => reg.ebd_notes);
-      if (ebdNotesArray.length > 0) {
-        ebdNotes = ebdNotesArray.join(' | ');
-      }
+      // Observação: agora o campo ebd_notes será preenchido diretamente na interface de relatórios
 
       setReportData({
         totalEnrolled, totalPresent, totalAbsent: totalEnrolled - totalPresent, totalVisitors,
@@ -277,7 +271,7 @@ export const ReportsTab = () => {
           adolescents: getTopN(adolescentsClasses, 3),
           adults: getTopN(adultsClasses, 3)
         },
-        classDetails, cashTotal, pixTotal, ebdNotes
+        classDetails, cashTotal, pixTotal
       });
     } catch (error) {
       console.error("Error fetching report data:", error);
@@ -310,6 +304,20 @@ export const ReportsTab = () => {
             </Select>
           </div>
           {selectedDate && (<div className="flex gap-4"><Button variant={reportType === "general" ? "default" : "outline"} onClick={() => setReportType("general")}>Relatório Geral (A4)</Button><Button variant={reportType === "classes" ? "default" : "outline"} onClick={() => setReportType("classes")}>Relatório por Classes (A4 Paisagem)</Button></div>)}
+          {selectedDate && (<div className="flex gap-4"><Button variant={reportType === "general" ? "default" : "outline"} onClick={() => setReportType("general")}>Relatório Geral (A4)</Button><Button variant={reportType === "classes" ? "default" : "outline"} onClick={() => setReportType("classes")}>Relatório por Classes (A4 Paisagem)</Button></div>)}
+          
+          {selectedDate && reportType === "general" && (
+            <div className="space-y-2">
+              <Label htmlFor="ebd-observations">Observações da EBD (aparecerá no relatório geral)</Label>
+              <textarea
+                id="ebd-observations"
+                className="w-full min-h-[100px] p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="Digite aqui as observações gerais da EBD..."
+                value={ebdObservations}
+                onChange={(e) => setEbdObservations(e.target.value)}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
       
@@ -327,7 +335,7 @@ export const ReportsTab = () => {
             </div>
             <div className="border rounded-lg overflow-auto bg-gray-200 p-4 flex justify-center">
               <div style={{ transform: 'scale(0.8)', transformOrigin: 'top center' }}>
-                 {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} />}
+                 {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} ebdObservations={ebdObservations} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} />}
               </div>
             </div>
           </div>
@@ -347,7 +355,7 @@ export const ReportsTab = () => {
                 }
               }
             `}</style>
-            {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} />}
+            {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} ebdObservations={ebdObservations} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} />}
           </div>
         </>
       )}

@@ -221,12 +221,33 @@ export const AdminDashboard = () => {
   
   const handleToggleRegistrations = async (isChecked: boolean) => {
     try {
-      const { error } = await supabase
+      // Primeiro, verifica se o registro existe
+      const { data: existing } = await supabase
         .from("system_settings")
-        .update({ value: isChecked })
-        .eq("key", "allow_registrations");
+        .select("key")
+        .eq("key", "allow_registrations")
+        .single();
       
-      if (error) throw error;
+      if (existing) {
+        // Atualiza o registro existente
+        const { error } = await supabase
+          .from("system_settings")
+          .update({ value: isChecked })
+          .eq("key", "allow_registrations");
+        
+        if (error) throw error;
+      } else {
+        // Cria o registro se não existir
+        const { error } = await supabase
+          .from("system_settings")
+          .insert({ 
+            key: "allow_registrations", 
+            value: isChecked,
+            description: "Controla se o formulário de registro está aberto"
+          });
+        
+        if (error) throw error;
+      }
       
       setAllowRegistrations(isChecked);
       toast({
