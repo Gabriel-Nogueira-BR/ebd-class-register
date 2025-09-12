@@ -14,17 +14,18 @@ const Admin = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user came from correct login path
-    const hasAccess = sessionStorage.getItem("ebd-admin-access");
-    if (!hasAccess) {
-      navigate("/");
-    } else {
+    const checkAccess = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/login");
+      }
       setIsLoading(false);
-    }
+    };
+    checkAccess();
   }, [navigate]);
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("ebd-admin-access");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     navigate("/");
   };
 
