@@ -8,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Pencil, Trash2 } from "lucide-react";
 
 interface Student {
   id: number;
@@ -37,6 +40,17 @@ export const StudentsManagement = () => {
   const [newStudentBirthDate, setNewStudentBirthDate] = useState("");
   const [newStudentClassId, setNewStudentClassId] = useState("");
   const { toast } = useToast();
+  
+  // Edit dialog state
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [editStudentName, setEditStudentName] = useState("");
+  const [editStudentAddress, setEditStudentAddress] = useState("");
+  const [editStudentPhone, setEditStudentPhone] = useState("");
+  const [editStudentBirthDate, setEditStudentBirthDate] = useState("");
+  const [editStudentClassId, setEditStudentClassId] = useState("");
+  
+  // Delete dialog state
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -120,6 +134,84 @@ export const StudentsManagement = () => {
         variant: "destructive",
         title: "Erro",
         description: "Erro ao adicionar aluno.",
+      });
+    }
+  };
+
+  const openEditDialog = (student: Student) => {
+    setEditingStudent(student);
+    setEditStudentName(student.name);
+    setEditStudentAddress(student.address || "");
+    setEditStudentPhone(student.phone || "");
+    setEditStudentBirthDate(student.birth_date || "");
+    setEditStudentClassId(student.class_id.toString());
+  };
+
+  const saveStudentEdit = async () => {
+    if (!editingStudent || !editStudentName.trim() || !editStudentClassId) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Preencha pelo menos o nome e a classe.",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("students")
+        .update({
+          name: editStudentName.trim(),
+          address: editStudentAddress.trim() || null,
+          phone: editStudentPhone.trim() || null,
+          birth_date: editStudentBirthDate || null,
+          class_id: parseInt(editStudentClassId),
+        })
+        .eq("id", editingStudent.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Dados do aluno atualizados com sucesso!",
+      });
+
+      setEditingStudent(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error updating student:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao atualizar dados do aluno.",
+      });
+    }
+  };
+
+  const deleteStudent = async () => {
+    if (!studentToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("students")
+        .delete()
+        .eq("id", studentToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso",
+        description: "Aluno excluído com sucesso!",
+      });
+
+      setStudentToDelete(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao excluir aluno.",
       });
     }
   };
@@ -259,13 +351,29 @@ export const StudentsManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleStudentStatus(student.id, student.active ?? false)}
-                      >
-                        {student.active ? "Desativar" : "Ativar"}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleStudentStatus(student.id, student.active ?? false)}
+                        >
+                          {student.active ? "Desativar" : "Ativar"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditDialog(student)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setStudentToDelete(student)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -279,6 +387,98 @@ export const StudentsManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Student Dialog */}
+      <Dialog open={!!editingStudent} onOpenChange={(open) => !open && setEditingStudent(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Aluno</DialogTitle>
+            <DialogDescription>
+              Atualize os dados do aluno
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-student-name">Nome do Aluno</Label>
+              <Input
+                id="edit-student-name"
+                value={editStudentName}
+                onChange={(e) => setEditStudentName(e.target.value)}
+                placeholder="Digite o nome completo"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-student-phone">Telefone</Label>
+              <Input
+                id="edit-student-phone"
+                value={editStudentPhone}
+                onChange={(e) => setEditStudentPhone(e.target.value)}
+                placeholder="(22) 99999-9999"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-student-birth-date">Data de Nascimento</Label>
+              <Input
+                id="edit-student-birth-date"
+                type="date"
+                value={editStudentBirthDate}
+                onChange={(e) => setEditStudentBirthDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-student-address">Endereço</Label>
+              <Input
+                id="edit-student-address"
+                value={editStudentAddress}
+                onChange={(e) => setEditStudentAddress(e.target.value)}
+                placeholder="Rua, número, bairro"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-student-class">Classe</Label>
+              <Select value={editStudentClassId} onValueChange={setEditStudentClassId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a classe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id.toString()}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingStudent(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={saveStudentEdit}>
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o aluno "{studentToDelete?.name}"? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteStudent}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
