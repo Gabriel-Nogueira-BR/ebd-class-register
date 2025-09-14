@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 
 interface Student {
   id: number;
@@ -51,6 +51,10 @@ export const StudentsManagement = () => {
   
   // Delete dialog state
   const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  
+  // Sort state
+  const [sortColumn, setSortColumn] = useState<'name' | 'phone' | 'class' | 'status' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     fetchData();
@@ -241,6 +245,49 @@ export const StudentsManagement = () => {
     }
   };
 
+  const handleSort = (column: 'name' | 'phone' | 'class' | 'status') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedStudents = [...students].sort((a, b) => {
+    if (!sortColumn) return 0;
+    
+    const direction = sortDirection === 'asc' ? 1 : -1;
+    
+    switch (sortColumn) {
+      case 'name':
+        return direction * a.name.localeCompare(b.name);
+      case 'phone':
+        const phoneA = a.phone || '';
+        const phoneB = b.phone || '';
+        return direction * phoneA.localeCompare(phoneB);
+      case 'class':
+        const classA = a.classes?.name || '';
+        const classB = b.classes?.name || '';
+        return direction * classA.localeCompare(classB);
+      case 'status':
+        const statusA = a.active ? 1 : 0;
+        const statusB = b.active ? 1 : 0;
+        return direction * (statusA - statusB);
+      default:
+        return 0;
+    }
+  });
+
+  const SortIcon = ({ column }: { column: 'name' | 'phone' | 'class' | 'status' }) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="ml-2 h-4 w-4" />
+      : <ArrowDown className="ml-2 h-4 w-4" />;
+  };
+
   if (isLoading) {
     // Skeleton Loader
   }
@@ -326,15 +373,47 @@ export const StudentsManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Classe</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead 
+                    className="cursor-pointer select-none"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center">
+                      Nome
+                      <SortIcon column="name" />
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer select-none"
+                    onClick={() => handleSort('phone')}
+                  >
+                    <div className="flex items-center">
+                      Telefone
+                      <SortIcon column="phone" />
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer select-none"
+                    onClick={() => handleSort('class')}
+                  >
+                    <div className="flex items-center">
+                      Classe
+                      <SortIcon column="class" />
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer select-none"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center">
+                      Status
+                      <SortIcon column="status" />
+                    </div>
+                  </TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {students.map((student) => (
+                {sortedStudents.map((student) => (
                   <TableRow key={student.id}>
                     <TableCell className="font-medium">
                       {student.name}
