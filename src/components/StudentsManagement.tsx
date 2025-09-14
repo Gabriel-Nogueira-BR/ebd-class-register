@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
 
 interface Student {
   id: number;
@@ -55,6 +55,9 @@ export const StudentsManagement = () => {
   // Sort state
   const [sortColumn, setSortColumn] = useState<'name' | 'phone' | 'class' | 'status' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -254,7 +257,18 @@ export const StudentsManagement = () => {
     }
   };
 
-  const sortedStudents = [...students].sort((a, b) => {
+  const filteredStudents = students.filter((student) => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      student.name.toLowerCase().includes(searchLower) ||
+      (student.phone && student.phone.toLowerCase().includes(searchLower)) ||
+      (student.classes?.name && student.classes.name.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const sortedStudents = [...filteredStudents].sort((a, b) => {
     if (!sortColumn) return 0;
     
     const direction = sortDirection === 'asc' ? 1 : -1;
@@ -369,6 +383,18 @@ export const StudentsManagement = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                type="text"
+                placeholder="Buscar por nome, telefone ou classe..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -459,9 +485,9 @@ export const StudentsManagement = () => {
               </TableBody>
             </Table>
           </div>
-          {students.length === 0 && (
+            {sortedStudents.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum aluno encontrado.
+              {searchTerm ? "Nenhum aluno encontrado com os critérios de busca." : "Nenhum aluno cadastrado."}
             </div>
           )}
         </CardContent>
