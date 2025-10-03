@@ -5,8 +5,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Eye, Download } from "lucide-react";
+import { Eye, Download, Pencil } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Registration {
   id: string;
@@ -32,6 +34,16 @@ export const RegistrationsList = () => {
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
   const [receiptsDialogOpen, setReceiptsDialogOpen] = useState(false);
   const [receiptUrls, setReceiptUrls] = useState<string[]>([]);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    total_present: 0,
+    visitors: 0,
+    bibles: 0,
+    magazines: 0,
+    offering_cash: 0,
+    offering_pix: 0,
+    hymn: ""
+  });
 
   useEffect(() => {
     fetchRegistrations();
@@ -117,6 +129,48 @@ export const RegistrationsList = () => {
     }
   };
 
+  const handleEdit = (registration: Registration) => {
+    setSelectedRegistration(registration);
+    setEditFormData({
+      total_present: registration.total_present || 0,
+      visitors: registration.visitors || 0,
+      bibles: registration.bibles || 0,
+      magazines: registration.magazines || 0,
+      offering_cash: registration.offering_cash || 0,
+      offering_pix: registration.offering_pix || 0,
+      hymn: registration.hymn || ""
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedRegistration) return;
+
+    try {
+      const { error } = await supabase
+        .from("registrations")
+        .update(editFormData)
+        .eq("id", selectedRegistration.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Registro atualizado",
+        description: "As alterações foram salvas com sucesso.",
+      });
+
+      setEditDialogOpen(false);
+      fetchRegistrations();
+    } catch (error) {
+      console.error("Error updating registration:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o registro.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDownloadReceipt = async (url: string, index: number) => {
     try {
       const response = await fetch(url);
@@ -182,6 +236,7 @@ export const RegistrationsList = () => {
                 <TableHead>Ofertas</TableHead>
                 <TableHead>Hino</TableHead>
                 <TableHead>Comprovantes</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -239,6 +294,16 @@ export const RegistrationsList = () => {
                       )}
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(registration)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -282,27 +347,139 @@ export const RegistrationsList = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="border rounded-lg overflow-hidden bg-muted">
-                    <img
-                      src={url}
-                      alt={`Comprovante ${index + 1}`}
-                      className="w-full h-auto"
-                      onError={(e) => {
-                        // Se for um PDF ou outro tipo de arquivo não-imagem
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          const iframe = document.createElement('iframe');
-                          iframe.src = url;
-                          iframe.className = 'w-full h-[600px]';
-                          parent.appendChild(iframe);
-                        }
-                      }}
-                    />
+                    {url.includes('.pdf') ? (
+                      <object
+                        data={url}
+                        type="application/pdf"
+                        className="w-full h-[600px]"
+                      >
+                        <iframe
+                          src={url}
+                          className="w-full h-[600px]"
+                          title={`Comprovante ${index + 1}`}
+                        >
+                          <p>
+                            Seu navegador não suporta visualização de PDF.{' '}
+                            <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                              Clique aqui para baixar
+                            </a>
+                          </p>
+                        </iframe>
+                      </object>
+                    ) : (
+                      <img
+                        src={url}
+                        alt={`Comprovante ${index + 1}`}
+                        className="w-full h-auto"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = url;
+                        }}
+                      />
+                    )}
                   </div>
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para editar registro */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Registro</DialogTitle>
+            <DialogDescription>
+              Edite os dados do registro selecionado
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Presentes</Label>
+              <Input
+                type="number"
+                value={editFormData.total_present || ""}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, total_present: parseInt(e.target.value) || 0 }))}
+                min="0"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Visitantes</Label>
+              <Input
+                type="number"
+                value={editFormData.visitors || ""}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, visitors: parseInt(e.target.value) || 0 }))}
+                min="0"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Bíblias</Label>
+                <Input
+                  type="number"
+                  value={editFormData.bibles || ""}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, bibles: parseInt(e.target.value) || 0 }))}
+                  min="0"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Revistas</Label>
+                <Input
+                  type="number"
+                  value={editFormData.magazines || ""}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, magazines: parseInt(e.target.value) || 0 }))}
+                  min="0"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Oferta (Dinheiro)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editFormData.offering_cash || ""}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, offering_cash: parseFloat(e.target.value) || 0 }))}
+                  min="0"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Oferta (PIX/Cartão)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editFormData.offering_pix || ""}
+                  onChange={(e) => setEditFormData(prev => ({ ...prev, offering_pix: parseFloat(e.target.value) || 0 }))}
+                  min="0"
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Hino</Label>
+              <Input
+                type="text"
+                value={editFormData.hymn}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, hymn: e.target.value }))}
+                placeholder="Ex: 15 - Harpa Cristã"
+              />
+            </div>
+            
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveEdit}>
+                Salvar Alterações
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, Eye } from "lucide-react";
+import { StudentAttendanceDialog } from "./StudentAttendanceDialog";
 
 interface Student {
   id: number;
@@ -58,6 +59,11 @@ export const StudentsManagement = () => {
   
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Attendance dialog state
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [selectedStudentName, setSelectedStudentName] = useState("");
+  const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -442,7 +448,16 @@ export const StudentsManagement = () => {
                 {sortedStudents.map((student) => (
                   <TableRow key={student.id}>
                     <TableCell className="font-medium">
-                      {student.name}
+                      <button
+                        onClick={() => {
+                          setSelectedStudentId(student.id);
+                          setSelectedStudentName(student.name);
+                          setAttendanceDialogOpen(true);
+                        }}
+                        className="hover:text-primary hover:underline text-left cursor-pointer"
+                      >
+                        {student.name}
+                      </button>
                     </TableCell>
                     <TableCell>
                       {student.phone || "-"}
@@ -457,6 +472,18 @@ export const StudentsManagement = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedStudentId(student.id);
+                            setSelectedStudentName(student.name);
+                            setAttendanceDialogOpen(true);
+                          }}
+                          title="Ver frequência"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -565,6 +592,13 @@ export const StudentsManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <StudentAttendanceDialog
+        studentId={selectedStudentId}
+        studentName={selectedStudentName}
+        open={attendanceDialogOpen}
+        onOpenChange={setAttendanceDialogOpen}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!studentToDelete} onOpenChange={(open) => !open && setStudentToDelete(null)}>

@@ -137,17 +137,41 @@ export const AdminDashboard = () => {
         // Processar dados mensais
         const monthlyData: { [key: string]: QuarterlyData } = {};
         const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+        
+        // Processar dados diários para a aba financeira
+        const dailyData: { [key: string]: { day: string; offerings: number } } = {};
+        
         registrations.forEach(reg => {
           const date = new Date(reg.registration_date);
           const monthKey = monthNames[date.getUTCMonth()];
+          const dayKey = date.toISOString().split('T')[0];
+          const dayLabel = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+          
+          // Dados mensais
           if (!monthlyData[monthKey]) {
             monthlyData[monthKey] = { month: monthKey, registrations: 0, presence: 0, offerings: 0 };
           }
           monthlyData[monthKey].registrations++;
           monthlyData[monthKey].presence += (reg.total_present || 0) + (reg.visitors || 0);
           monthlyData[monthKey].offerings += parseFloat(String(reg.offering_cash || 0)) + parseFloat(String(reg.offering_pix || 0));
+          
+          // Dados diários
+          if (!dailyData[dayKey]) {
+            dailyData[dayKey] = { day: dayLabel, offerings: 0 };
+          }
+          dailyData[dayKey].offerings += parseFloat(String(reg.offering_cash || 0)) + parseFloat(String(reg.offering_pix || 0));
         });
-        setQuarterlyData(Object.values(monthlyData));
+        
+        // Usar dados diários se existirem, caso contrário usar mensais
+        const dataToDisplay = Object.keys(dailyData).length > 0 
+          ? Object.values(dailyData).sort((a, b) => {
+              const [dayA, monthA] = a.day.split('/');
+              const [dayB, monthB] = b.day.split('/');
+              return new Date(`2025-${monthA}-${dayA}`).getTime() - new Date(`2025-${monthB}-${dayB}`).getTime();
+            })
+          : Object.values(monthlyData);
+        
+        setQuarterlyData(dataToDisplay as any);
         
         // Processar dados de frequência por dia da semana (assumindo que será sempre Domingo)
         const totalSundayAttendance = registrations.reduce((acc, reg) => acc + (reg.total_present || 0), 0);
@@ -344,6 +368,17 @@ export const AdminDashboard = () => {
                                 <ChartTooltip content={<ChartTooltipContent />} />
                                 <Bar dataKey="presence" fill="hsl(var(--primary))" name="Presenças" />
                                 <Bar dataKey="registrations" fill="hsl(var(--secondary))" name="Registros" />
+                            </BarChart>
+                        </ChartContainer>
+                    </TabsContent>
+                    <TabsContent value="financial">
+                        <ChartContainer config={{}} className="h-80 w-full">
+                            <BarChart data={quarterlyData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="day" />
+                                <YAxis />
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <Bar dataKey="offerings" fill="hsl(var(--primary))" name="Ofertas (R$)" />
                             </BarChart>
                         </ChartContainer>
                     </TabsContent>

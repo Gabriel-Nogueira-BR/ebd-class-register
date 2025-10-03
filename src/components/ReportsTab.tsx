@@ -112,15 +112,19 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
           <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM DINHEIRO:</span><span className="font-bold">R$ {reportData?.cashTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
           <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM PIX/CARTÃO:</span><span className="font-bold">R$ {reportData?.pixTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
       </div>
-      <div className="border border-black p-2 h-20 text-xs">
-        <span className="font-bold">OBSERVAÇÕES:</span>
-        {ebdObservations && (
-          <p className="mt-1">{ebdObservations}</p>
-        )}
-      </div>
     </main>
     
-    <footer className="text-center" style={{ position: 'absolute', bottom: '10mm', left: 0, right: 0 }}><p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p></footer>
+    <footer style={{ position: 'absolute', bottom: '10mm', left: '10mm', right: '10mm' }}>
+      <div className="border border-black p-2 h-16 text-xs mb-2">
+        <span className="font-bold">OBSERVAÇÕES:</span>
+        {ebdObservations && (
+          <p className="mt-1 text-[9pt]">{ebdObservations}</p>
+        )}
+      </div>
+      <div className="text-center">
+        <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
+      </div>
+    </footer>
   </div>
 );
 
