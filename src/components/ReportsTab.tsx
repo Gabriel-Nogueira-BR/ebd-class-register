@@ -47,8 +47,8 @@ interface ReportData {
 
 // Componentes do Relatório (definidos fora para melhor performance)
 const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
-  <div className="bg-white text-black p-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '10pt', position: 'relative' }}>
-    <header className="flex items-start justify-between pb-4">
+  <div className="bg-white text-black p-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '10pt' }}>
+    <header className="flex items-start justify-between pb-3">
       <div className="flex items-center gap-4">
         <img src={adCamposLogo} alt="AD Campos Logo" className="w-[75px] h-[75px]" />
         <div>
@@ -63,64 +63,65 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
       </div>
     </header>
     <div className="text-center"><h3 className="text-lg font-bold">RELATÓRIO DA ESCOLA BÍBLICA DOMINICAL</h3></div>
-    <div className="flex justify-end text-xs mt-1 mb-2"><p><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p></div>
+    <div className="flex justify-end text-xs mt-1 mb-1"><p><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p></div>
     
     <main className="flex-grow">
-      <div className="grid grid-cols-2 gap-x-4 mb-2">
-        <div className="space-y-1">
-          <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>ALUNOS MATRICULADOS:</span><span className="font-bold">{reportData?.totalEnrolled || 0}</span></div>
-          <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>ALUNOS PRESENTES:</span><span className="font-bold">{reportData?.totalPresent || 0}</span></div>
-          <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>ALUNOS VISITANTES:</span><span className="font-bold">{reportData?.totalVisitors || 0}</span></div>
-          <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>ALUNOS AUSENTES:</span><span className="font-bold">{reportData?.totalAbsent || 0}</span></div>
+      <div className="grid grid-cols-2 gap-x-4 mb-1">
+        <div className="space-y-0.5">
+          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>ALUNOS MATRICULADOS:</span><span className="font-bold">{reportData?.totalEnrolled || 0}</span></div>
+          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>ALUNOS PRESENTES:</span><span className="font-bold">{reportData?.totalPresent || 0}</span></div>
+          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>ALUNOS VISITANTES:</span><span className="font-bold">{reportData?.totalVisitors || 0}</span></div>
+          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>ALUNOS AUSENTES:</span><span className="font-bold">{reportData?.totalAbsent || 0}</span></div>
         </div>
-        <div className="space-y-1">
-          <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>TOTAL DE OFERTAS EBD:</span><span className="font-bold">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</span></div>
-          <div className="border border-black px-2 py-1 text-xs flex justify-between"><span>TOTAL DE REVISTAS EBD, INCLUINDO PROFESSORES:</span><span className="font-bold">{reportData?.totalMagazines || 0}</span></div>
+        <div className="space-y-0.5">
+          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>TOTAL DE OFERTAS EBD:</span><span className="font-bold">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</span></div>
+          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>TOTAL DE REVISTAS EBD, INCLUINDO PROFESSORES:</span><span className="font-bold">{reportData?.totalMagazines || 0}</span></div>
         </div>
       </div>
 
-      <div className="border border-black px-2 py-1 mb-2 text-xs flex justify-between"><span>TOTAL DE ALUNOS PRESENTES (alunos presentes + alunos visitantes):</span><span className="font-bold">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</span></div>
+      <div className="border border-black px-2 py-0.5 mb-1 text-xs flex justify-between"><span>TOTAL DE ALUNOS PRESENTES (alunos presentes + alunos visitantes):</span><span className="font-bold">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</span></div>
       
-      <div className="space-y-1 mb-2 text-xs">
-          <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Crianças e Juniores):</span><span>{reportData?.magazinesByCategory?.children || 0}</span></div>
-          <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Adolescentes):</span><span>{reportData?.magazinesByCategory?.adolescents || 0}</span></div>
-          <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Jovens):</span><span>{reportData?.magazinesByCategory?.youth || 0}</span></div>
-          <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Novos Convertidos):</span><span>{reportData?.magazinesByCategory?.newConverts || 0}</span></div>
-          <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Adultos):</span><span>{reportData?.magazinesByCategory?.adults || 0}</span></div>
-          <div className="border border-black px-2 py-1 flex justify-between"><span>TOTAL DE REVISTAS PROFESSORES EM CLASSE:</span><span>{reportData?.magazinesByCategory?.teachers || 0}</span></div>
+      <div className="space-y-0.5 mb-1 text-xs">
+          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Crianças e Juniores):</span><span>{reportData?.magazinesByCategory?.children || 0}</span></div>
+          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Adolescentes):</span><span>{reportData?.magazinesByCategory?.adolescents || 0}</span></div>
+          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Jovens):</span><span>{reportData?.magazinesByCategory?.youth || 0}</span></div>
+          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Novos Convertidos):</span><span>{reportData?.magazinesByCategory?.newConverts || 0}</span></div>
+          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Adultos):</span><span>{reportData?.magazinesByCategory?.adults || 0}</span></div>
+          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS PROFESSORES EM CLASSE:</span><span>{reportData?.magazinesByCategory?.teachers || 0}</span></div>
       </div>
 
-      <div className="border border-black p-2 mb-2 text-xs">
-          <h4 className="font-bold text-center mb-2 text-sm">CLASSIFICAÇÃO DAS OFERTAS</h4>
-          <div className="space-y-2">
+      <div className="border border-black p-2 mb-1 text-xs">
+          <h4 className="font-bold text-center mb-1 text-sm">CLASSIFICAÇÃO DAS OFERTAS</h4>
+          <div className="space-y-1">
               <div>
-                  <div className="flex justify-between font-bold bg-gray-200 px-2 py-1"><span>CLASSES DAS CRIANÇAS:</span><span>VALOR R$</span></div>
+                  <div className="flex justify-between font-bold bg-gray-200 px-2 py-0.5"><span>CLASSES DAS CRIANÇAS:</span><span>VALOR R$</span></div>
                   {reportData?.topClasses?.children.map((cls) => (<div key={cls.name} className="flex justify-between px-2"><span>{cls.rank} {cls.name}</span><span>R$ {cls.offering.toFixed(2).replace('.', ',')}</span></div>))}
               </div>
               <div>
-                  <div className="flex justify-between font-bold bg-gray-200 px-2 py-1"><span>CLASSES DOS ADOLESCENTES:</span><span>VALOR R$</span></div>
+                  <div className="flex justify-between font-bold bg-gray-200 px-2 py-0.5"><span>CLASSES DOS ADOLESCENTES:</span><span>VALOR R$</span></div>
                   {reportData?.topClasses?.adolescents.map((cls) => (<div key={cls.name} className="flex justify-between px-2"><span>{cls.rank} {cls.name}</span><span>R$ {cls.offering.toFixed(2).replace('.', ',')}</span></div>))}
               </div>
               <div>
-                  <div className="flex justify-between font-bold bg-gray-200 px-2 py-1"><span>CLASSES DOS ADULTOS:</span><span>VALOR R$</span></div>
+                  <div className="flex justify-between font-bold bg-gray-200 px-2 py-0.5"><span>CLASSES DOS ADULTOS:</span><span>VALOR R$</span></div>
                   {reportData?.topClasses?.adults.map((cls) => (<div key={cls.name} className="flex justify-between px-2"><span>{cls.rank} {cls.name}</span><span>R$ {cls.offering.toFixed(2).replace('.', ',')}</span></div>))}
               </div>
           </div>
       </div>
       
-      <div className="flex gap-4 mb-2">
+      <div className="flex gap-4 mb-1">
           <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM DINHEIRO:</span><span className="font-bold">R$ {reportData?.cashTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
           <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM PIX/CARTÃO:</span><span className="font-bold">R$ {reportData?.pixTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
       </div>
-    </main>
-    
-    <footer style={{ position: 'absolute', bottom: '10mm', left: '10mm', right: '10mm' }}>
-      <div className="border border-black p-2 h-16 text-xs mb-2">
+
+      <div className="border border-black p-2 h-20 text-xs mb-1">
         <span className="font-bold">OBSERVAÇÕES:</span>
         {ebdObservations && (
           <p className="mt-1 text-[9pt]">{ebdObservations}</p>
         )}
       </div>
+    </main>
+    
+    <footer className="mt-auto">
       <div className="text-center">
         <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
