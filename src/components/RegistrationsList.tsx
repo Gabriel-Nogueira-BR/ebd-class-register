@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Eye, Download, Pencil } from "lucide-react";
+import { Eye, Download, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -171,6 +171,47 @@ export const RegistrationsList = () => {
     }
   };
 
+  const handleDelete = async (registration: Registration) => {
+    if (!confirm("Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.")) {
+      return;
+    }
+
+    try {
+      // Primeiro, excluir os arquivos do storage se houver
+      if (registration.pix_receipt_urls.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from("pix-receipts")
+          .remove(registration.pix_receipt_urls);
+
+        if (storageError) {
+          console.error("Error deleting storage files:", storageError);
+        }
+      }
+
+      // Depois, excluir o registro
+      const { error } = await supabase
+        .from("registrations")
+        .delete()
+        .eq("id", registration.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Registro excluído",
+        description: "O registro foi excluído com sucesso.",
+      });
+
+      fetchRegistrations();
+    } catch (error) {
+      console.error("Error deleting registration:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o registro.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleDownloadReceipt = async (url: string, index: number) => {
     try {
       const response = await fetch(url);
@@ -295,14 +336,24 @@ export const RegistrationsList = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(registration)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(registration)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(registration)}
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
