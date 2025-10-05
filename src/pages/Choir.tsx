@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Music4 } from "lucide-react";
+import { Music4, Printer } from "lucide-react";
 
 interface Hymn {
   hymn: string;
@@ -15,6 +15,10 @@ const ChoirView = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   useEffect(() => {
     const fetchHymns = async () => {
@@ -70,7 +74,7 @@ const ChoirView = () => {
         <Card className="shadow-lg">
           <CardHeader className="text-center">
             <div className="flex items-center justify-between">
-              <Button onClick={() => navigate("/")} variant="outline" size="sm">
+              <Button onClick={() => navigate("/")} variant="outline" size="sm" className="print:hidden">
                 ← Voltar
               </Button>
               <div className="flex-1">
@@ -82,7 +86,10 @@ const ChoirView = () => {
                   Hinos escolhidos pelas classes no último domingo
                 </CardDescription>
               </div>
-              <div className="w-20"></div> {/* Espaçador */}
+              <Button onClick={handlePrint} variant="outline" size="sm" className="print:hidden">
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
