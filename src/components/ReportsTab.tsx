@@ -203,20 +203,15 @@ export const ReportsTab = () => {
     setReportData(null);
     setNoData(false);
     try {
-      const startDate = new Date(date);
-      startDate.setHours(0, 0, 0, 0);
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
-      
-      // Converter para UTC-3 (Brasília)
-      const startDateBrasilia = new Date(startDate.getTime() + (3 * 60 * 60 * 1000)).toISOString();
-      const endDateBrasilia = new Date(endDate.getTime() + (3 * 60 * 60 * 1000)).toISOString();
+      // Ajustar para buscar do início ao fim do dia na data selecionada
+      const startDate = new Date(date + 'T00:00:00.000Z');
+      const endDate = new Date(date + 'T23:59:59.999Z');
       
       const { data: registrations } = await supabase
         .from("registrations")
         .select("*, classes(name)")
-        .gte("registration_date", startDateBrasilia)
-        .lt("registration_date", endDateBrasilia);
+        .gte("registration_date", startDate.toISOString())
+        .lte("registration_date", endDate.toISOString());
 
       if (!registrations || registrations.length === 0) {
         setNoData(true);
