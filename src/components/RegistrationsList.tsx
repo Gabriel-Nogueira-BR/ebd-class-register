@@ -30,6 +30,7 @@ interface Registration {
 
 export const RegistrationsList = () => {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [filteredRegistrations, setFilteredRegistrations] = useState<Registration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
   const [receiptsDialogOpen, setReceiptsDialogOpen] = useState(false);
@@ -44,10 +45,32 @@ export const RegistrationsList = () => {
     offering_pix: 0,
     hymn: ""
   });
+  const [filterDate, setFilterDate] = useState("");
+  const [filterClass, setFilterClass] = useState("");
+  const [classes, setClasses] = useState<Array<{ id: number; name: string }>>([]);
 
   useEffect(() => {
     fetchRegistrations();
+    fetchClasses();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [registrations, filterDate, filterClass]);
+
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .select("id, name")
+        .order("name");
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+    }
+  };
 
   const fetchRegistrations = async () => {
     try {
@@ -68,6 +91,23 @@ export const RegistrationsList = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...registrations];
+
+    if (filterDate) {
+      filtered = filtered.filter(reg => {
+        const regDate = new Date(reg.registration_date).toISOString().split('T')[0];
+        return regDate === filterDate;
+      });
+    }
+
+    if (filterClass) {
+      filtered = filtered.filter(reg => reg.class_id === parseInt(filterClass));
+    }
+
+    setFilteredRegistrations(filtered);
   };
 
   const formatDate = (dateString: string) => {
@@ -265,6 +305,45 @@ export const RegistrationsList = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="mb-4 flex gap-4 flex-wrap">
+          <div className="flex-1 min-w-[200px]">
+            <Label htmlFor="filter-date" className="mb-2 block">Filtrar por Data</Label>
+            <Input
+              id="filter-date"
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              placeholder="Selecione uma data"
+            />
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <Label htmlFor="filter-class" className="mb-2 block">Filtrar por Classe</Label>
+            <select
+              id="filter-class"
+              value={filterClass}
+              onChange={(e) => setFilterClass(e.target.value)}
+              className="w-full h-10 px-3 border border-input bg-background rounded-md"
+            >
+              <option value="">Todas as classes</option>
+              {classes.map(cls => (
+                <option key={cls.id} value={cls.id}>{cls.name}</option>
+              ))}
+            </select>
+          </div>
+          {(filterDate || filterClass) && (
+            <div className="flex items-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFilterDate("");
+                  setFilterClass("");
+                }}
+              >
+                Limpar Filtros
+              </Button>
+            </div>
+          )}
+        </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -281,7 +360,7 @@ export const RegistrationsList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {registrations.map((registration) => (
+              {filteredRegistrations.map((registration) => (
                 <TableRow key={registration.id}>
                   <TableCell className="font-medium">
                     {formatDate(registration.registration_date)}
@@ -360,7 +439,7 @@ export const RegistrationsList = () => {
             </TableBody>
           </Table>
         </div>
-        {registrations.length === 0 && (
+        {filteredRegistrations.length === 0 && !isLoading && (
           <div className="text-center py-8 text-muted-foreground">
             Nenhum registro encontrado.
           </div>

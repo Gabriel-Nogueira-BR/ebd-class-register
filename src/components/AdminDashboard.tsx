@@ -173,9 +173,28 @@ export const AdminDashboard = () => {
         
         setQuarterlyData(dataToDisplay as any);
         
-        // Processar dados de frequência por dia da semana (assumindo que será sempre Domingo)
-        const totalSundayAttendance = registrations.reduce((acc, reg) => acc + (reg.total_present || 0), 0);
-        setAttendanceData([{ dayOfWeek: "Dom", attendance: totalSundayAttendance }]);
+        // Processar dados de frequência por domingo do trimestre
+        const sundayData: { [key: string]: { date: Date; present: number } } = {};
+        registrations.forEach(reg => {
+          const date = new Date(reg.registration_date);
+          if (date.getDay() === 0) { // Apenas domingos
+            const dateKey = date.toISOString().split('T')[0];
+            if (!sundayData[dateKey]) {
+              sundayData[dateKey] = { date, present: 0 };
+            }
+            sundayData[dateKey].present += reg.total_present || 0;
+          }
+        });
+
+        const totalEnrolled = students?.length || 1;
+        const attendanceByWeek = Object.values(sundayData)
+          .sort((a, b) => a.date.getTime() - b.date.getTime())
+          .map((item) => ({
+            dayOfWeek: item.date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+            attendance: Math.round((item.present / totalEnrolled) * 100)
+          }));
+        
+        setAttendanceData(attendanceByWeek.length > 0 ? attendanceByWeek : [{ dayOfWeek: "Sem dados", attendance: 0 }]);
         
         // Processar dados por classe
         const classStats: { [key: number]: { enrolled: number; present: number } } = {};

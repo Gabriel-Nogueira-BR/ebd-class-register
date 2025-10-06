@@ -56,6 +56,9 @@ const ChoirView = () => {
           class_name: item.classes?.name || "Classe desconhecida"
         }));
 
+        // Ordenar por nome da classe para manter a ordem 1, 2, 3, etc
+        formattedHymns.sort((a, b) => a.class_name.localeCompare(b.class_name, 'pt-BR', { numeric: true }));
+
         setHymns(formattedHymns);
       } catch (err) {
         console.error("Error fetching hymns:", err);

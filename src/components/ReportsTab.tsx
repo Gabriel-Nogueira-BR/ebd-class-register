@@ -129,48 +129,67 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
   </div>
 );
 
-const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | null; selectedDate: string }) => (
-  <div className="bg-white text-black p-4" style={{ width: '297mm', height: '210mm', fontFamily: 'Arial, sans-serif' }}>
-    <header className="flex items-start justify-between mb-2">
-      <div className="flex items-center gap-3">
-        <img src={adCamposLogo} alt="AD Campos Logo" className="w-20 h-20" />
-        <div>
-          <h1 className="text-lg font-bold">Catedral das Assembleias de Deus em Campos</h1>
-          <h2 className="text-sm">Secretaria da Escola Bíblica Dominical - EBD</h2>
-          <p className="text-xs text-gray-700">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
+const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | null; selectedDate: string }) => {
+  // Separar classes por faixa etária
+  const childrenClasses = reportData?.classDetails?.filter(c => 
+    c.name.includes("SOLDADOS") || c.name.includes("OVELHINHAS")
+  ).sort((a, b) => b.offering - a.offering).map((c, i) => ({ ...c, rank: `${i + 1}°` })) || [];
+  
+  const adolescentsClasses = reportData?.classDetails?.filter(c => 
+    c.name.includes("ESTRELA") || c.name.includes("LAEL") || c.name.includes("ÁGAPE")
+  ).sort((a, b) => b.offering - a.offering).map((c, i) => ({ ...c, rank: `${i + 1}°` })) || [];
+  
+  const adultsClasses = reportData?.classDetails?.filter(c => 
+    !childrenClasses.some(child => child.name === c.name) && 
+    !adolescentsClasses.some(adol => adol.name === c.name)
+  ).sort((a, b) => b.offering - a.offering).map((c, i) => ({ ...c, rank: `${i + 1}°` })) || [];
+
+  // Combinar todas as classes na ordem: crianças, adolescentes, adultos
+  const allClassesOrdered = [...childrenClasses, ...adolescentsClasses, ...adultsClasses];
+
+  return (
+    <div className="bg-white text-black p-3" style={{ width: '297mm', height: '210mm', fontFamily: 'Arial, sans-serif' }}>
+      <header className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <img src={adCamposLogo} alt="AD Campos Logo" className="w-16 h-16" />
+          <div>
+            <h1 className="text-base font-bold">Catedral das Assembleias de Deus em Campos</h1>
+            <h2 className="text-sm">Secretaria da Escola Bíblica Dominical - EBD</h2>
+            <p className="text-xs text-gray-700">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-bold">Ano 2025</p>
+          <p className="text-xs"><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p>
+        </div>
+      </header>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse border border-black text-[11px]">
+          <thead><tr className="bg-gray-200 font-bold"><th className="border border-black px-2 py-1.5 text-left">Nome da Classe</th><th className="border border-black px-2 py-1.5">Matriculados</th><th className="border border-black px-2 py-1.5">Presentes</th><th className="border border-black px-2 py-1.5">Visitantes</th><th className="border border-black px-2 py-1.5">Ausentes</th><th className="border border-black px-2 py-1.5">Total Presentes</th><th className="border border-black px-2 py-1.5">Bíblias</th><th className="border border-black px-2 py-1.5">Revistas</th><th className="border border-black px-2 py-1.5">Ofertas</th><th className="border border-black px-2 py-1.5">Rank</th></tr></thead>
+          <tbody>
+            {allClassesOrdered.map((classData, index) => (
+              <tr key={index}>
+                <td className="border border-black px-2 py-1.5">{classData.name}</td><td className="border border-black px-2 py-1.5 text-center">{classData.enrolled}</td><td className="border border-black px-2 py-1.5 text-center">{classData.present}</td><td className="border border-black px-2 py-1.5 text-center">{classData.visitors}</td><td className="border border-black px-2 py-1.5 text-center">{classData.absent}</td><td className="border border-black px-2 py-1.5 text-center">{classData.totalPresent}</td><td className="border border-black px-2 py-1.5 text-center">{classData.bibles}</td><td className="border border-black px-2 py-1.5 text-center">{classData.magazines}</td><td className="border border-black px-2 py-1.5 text-center">R$ {classData.offering.toFixed(2).replace('.', ',')}</td><td className="border border-black px-2 py-1.5 text-center font-bold">{classData.rank}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-2 border-2 border-black p-2">
+        <h3 className="text-sm font-bold text-center mb-1">TOTAL GERAL</h3>
+        <div className="flex justify-around items-center text-center text-[11px]">
+            <div><p>Matriculados</p><p className="font-bold text-base">{reportData?.totalEnrolled || 0}</p></div>
+            <div><p>Ausentes</p><p className="font-bold text-base">{reportData?.totalAbsent || 0}</p></div>
+            <div><p>Visitantes</p><p className="font-bold text-base">{reportData?.totalVisitors || 0}</p></div>
+            <div><p>Total Presentes</p><p className="font-bold text-base">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</p></div>
+            <div><p>Bíblias</p><p className="font-bold text-base">{reportData?.totalBibles || 0}</p></div>
+            <div><p>Revistas</p><p className="font-bold text-base">{reportData?.totalMagazines || 0}</p></div>
+            <div><p>Ofertas</p><p className="font-bold text-base">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</p></div>
         </div>
       </div>
-      <div className="text-right">
-        <p className="text-sm font-bold">Ano 2025</p>
-        <p className="text-xs"><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p>
-      </div>
-    </header>
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse border border-black text-[10px]">
-        <thead><tr className="bg-gray-200 font-bold"><th className="border border-black px-1.5 py-1 text-left">Nome da Classe</th><th className="border border-black px-1.5 py-1">Matriculados</th><th className="border border-black px-1.5 py-1">Presentes</th><th className="border border-black px-1.5 py-1">Visitantes</th><th className="border border-black px-1.5 py-1">Ausentes</th><th className="border border-black px-1.5 py-1">Total Presentes</th><th className="border border-black px-1.5 py-1">Bíblias</th><th className="border border-black px-1.5 py-1">Revistas</th><th className="border border-black px-1.5 py-1">Ofertas</th><th className="border border-black px-1.5 py-1">Rank</th></tr></thead>
-        <tbody>
-          {reportData?.classDetails?.map((classData, index) => (
-            <tr key={index}>
-              <td className="border border-black px-1.5 py-1">{classData.name}</td><td className="border border-black px-1.5 py-1 text-center">{classData.enrolled}</td><td className="border border-black px-1.5 py-1 text-center">{classData.present}</td><td className="border border-black px-1.5 py-1 text-center">{classData.visitors}</td><td className="border border-black px-1.5 py-1 text-center">{classData.absent}</td><td className="border border-black px-1.5 py-1 text-center">{classData.totalPresent}</td><td className="border border-black px-1.5 py-1 text-center">{classData.bibles}</td><td className="border border-black px-1.5 py-1 text-center">{classData.magazines}</td><td className="border border-black px-1.5 py-1 text-center">R$ {classData.offering.toFixed(2).replace('.', ',')}</td><td className="border border-black px-1.5 py-1 text-center font-bold">{classData.rank}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
-    <div className="mt-2 border-2 border-black p-2">
-      <h3 className="text-sm font-bold text-center mb-1">TOTAL GERAL</h3>
-      <div className="flex justify-around items-center text-center text-[11px]">
-          <div><p>Matriculados</p><p className="font-bold text-base">{reportData?.totalEnrolled || 0}</p></div>
-          <div><p>Ausentes</p><p className="font-bold text-base">{reportData?.totalAbsent || 0}</p></div>
-          <div><p>Visitantes</p><p className="font-bold text-base">{reportData?.totalVisitors || 0}</p></div>
-          <div><p>Total Presentes</p><p className="font-bold text-base">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</p></div>
-          <div><p>Bíblias</p><p className="font-bold text-base">{reportData?.totalBibles || 0}</p></div>
-          <div><p>Revistas</p><p className="font-bold text-base">{reportData?.totalMagazines || 0}</p></div>
-          <div><p>Ofertas</p><p className="font-bold text-base">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</p></div>
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 
 export const ReportsTab = () => {
