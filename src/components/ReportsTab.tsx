@@ -47,7 +47,7 @@ interface ReportData {
 
 // Componentes do Relatório (definidos fora para melhor performance)
 const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
-  <div className="bg-white text-black p-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '10pt' }}>
+  <div className="bg-white text-black p-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '11pt', boxSizing: 'border-box' }}>
     <header className="flex items-start justify-between pb-3">
       <div className="flex items-center gap-4">
         <img src={adCamposLogo} alt="AD Campos Logo" className="w-[75px] h-[75px]" />
@@ -130,25 +130,39 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
 );
 
 const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | null; selectedDate: string }) => {
-  // Separar classes por faixa etária
+  // Separar classes por faixa etária e ordenar por nome
   const childrenClasses = reportData?.classDetails?.filter(c => 
     c.name.includes("SOLDADOS") || c.name.includes("OVELHINHAS")
-  ).sort((a, b) => b.offering - a.offering).map((c, i) => ({ ...c, rank: `${i + 1}°` })) || [];
+  ) || [];
   
   const adolescentsClasses = reportData?.classDetails?.filter(c => 
     c.name.includes("ESTRELA") || c.name.includes("LAEL") || c.name.includes("ÁGAPE")
-  ).sort((a, b) => b.offering - a.offering).map((c, i) => ({ ...c, rank: `${i + 1}°` })) || [];
+  ) || [];
   
   const adultsClasses = reportData?.classDetails?.filter(c => 
     !childrenClasses.some(child => child.name === c.name) && 
     !adolescentsClasses.some(adol => adol.name === c.name)
-  ).sort((a, b) => b.offering - a.offering).map((c, i) => ({ ...c, rank: `${i + 1}°` })) || [];
+  ) || [];
+
+  // Função para calcular ranking por faixa etária (top 3 apenas)
+  const calculateRanking = (classes: typeof childrenClasses) => {
+    const sortedByOffering = [...classes].sort((a, b) => b.offering - a.offering);
+    return classes.map(c => {
+      const position = sortedByOffering.findIndex(sc => sc.name === c.name) + 1;
+      return { ...c, rank: position <= 3 ? `${position}°` : '-' };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+  };
+
+  // Aplicar ranking e ordenar por nome
+  const rankedChildren = calculateRanking(childrenClasses);
+  const rankedAdolescents = calculateRanking(adolescentsClasses);
+  const rankedAdults = calculateRanking(adultsClasses);
 
   // Combinar todas as classes na ordem: crianças, adolescentes, adultos
-  const allClassesOrdered = [...childrenClasses, ...adolescentsClasses, ...adultsClasses];
+  const allClassesOrdered = [...rankedChildren, ...rankedAdolescents, ...rankedAdults];
 
   return (
-    <div className="bg-white text-black p-3" style={{ width: '297mm', height: '210mm', fontFamily: 'Arial, sans-serif' }}>
+    <div className="bg-white text-black p-3" style={{ width: '297mm', height: '210mm', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box' }}>
       <header className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-3">
           <img src={adCamposLogo} alt="AD Campos Logo" className="w-16 h-16" />
@@ -164,7 +178,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
         </div>
       </header>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse border border-black text-[11px]">
+        <table className="w-full border-collapse border border-black text-[12px]">
           <thead><tr className="bg-gray-200 font-bold"><th className="border border-black px-2 py-1.5 text-left">Nome da Classe</th><th className="border border-black px-2 py-1.5">Matriculados</th><th className="border border-black px-2 py-1.5">Presentes</th><th className="border border-black px-2 py-1.5">Visitantes</th><th className="border border-black px-2 py-1.5">Ausentes</th><th className="border border-black px-2 py-1.5">Total Presentes</th><th className="border border-black px-2 py-1.5">Bíblias</th><th className="border border-black px-2 py-1.5">Revistas</th><th className="border border-black px-2 py-1.5">Ofertas</th><th className="border border-black px-2 py-1.5">Rank</th></tr></thead>
           <tbody>
             {allClassesOrdered.map((classData, index) => (
@@ -176,15 +190,15 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
         </table>
       </div>
       <div className="mt-2 border-2 border-black p-2">
-        <h3 className="text-sm font-bold text-center mb-1">TOTAL GERAL</h3>
-        <div className="flex justify-around items-center text-center text-[11px]">
-            <div><p>Matriculados</p><p className="font-bold text-base">{reportData?.totalEnrolled || 0}</p></div>
-            <div><p>Ausentes</p><p className="font-bold text-base">{reportData?.totalAbsent || 0}</p></div>
-            <div><p>Visitantes</p><p className="font-bold text-base">{reportData?.totalVisitors || 0}</p></div>
-            <div><p>Total Presentes</p><p className="font-bold text-base">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</p></div>
-            <div><p>Bíblias</p><p className="font-bold text-base">{reportData?.totalBibles || 0}</p></div>
-            <div><p>Revistas</p><p className="font-bold text-base">{reportData?.totalMagazines || 0}</p></div>
-            <div><p>Ofertas</p><p className="font-bold text-base">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</p></div>
+        <h3 className="text-base font-bold text-center mb-1">TOTAL GERAL</h3>
+        <div className="flex justify-around items-center text-center text-[13px]">
+            <div><p>Matriculados</p><p className="font-bold text-lg">{reportData?.totalEnrolled || 0}</p></div>
+            <div><p>Ausentes</p><p className="font-bold text-lg">{reportData?.totalAbsent || 0}</p></div>
+            <div><p>Visitantes</p><p className="font-bold text-lg">{reportData?.totalVisitors || 0}</p></div>
+            <div><p>Total Presentes</p><p className="font-bold text-lg">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</p></div>
+            <div><p>Bíblias</p><p className="font-bold text-lg">{reportData?.totalBibles || 0}</p></div>
+            <div><p>Revistas</p><p className="font-bold text-lg">{reportData?.totalMagazines || 0}</p></div>
+            <div><p>Ofertas</p><p className="font-bold text-lg">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</p></div>
         </div>
       </div>
     </div>
@@ -363,9 +377,22 @@ export const ReportsTab = () => {
                 .printable-area { display: none; }
               }
               @media print {
+                * { box-sizing: border-box; }
                 body * { visibility: hidden; }
                 .printable-area, .printable-area * { visibility: visible; }
-                .printable-area { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+                .printable-area { 
+                  position: absolute; 
+                  left: 0; 
+                  top: 0; 
+                  width: 100%; 
+                  height: 100%; 
+                  overflow: hidden;
+                }
+                .printable-area > div {
+                  page-break-after: avoid;
+                  page-break-before: avoid;
+                  page-break-inside: avoid;
+                }
                 @page { 
                   size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"}; 
                   margin: 0; 
