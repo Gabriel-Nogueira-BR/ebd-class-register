@@ -47,7 +47,7 @@ interface ReportData {
 
 // Componentes do Relatório (definidos fora para melhor performance)
 const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
-  <div className="bg-white text-black p-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '11pt', boxSizing: 'border-box' }}>
+  <div className="bg-white text-black p-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '12pt', boxSizing: 'border-box' }}>
     <header className="flex items-start justify-between pb-3">
       <div className="flex items-center gap-4">
         <img src={adCamposLogo} alt="AD Campos Logo" className="w-[75px] h-[75px]" />
@@ -162,7 +162,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
   const allClassesOrdered = [...rankedChildren, ...rankedAdolescents, ...rankedAdults];
 
   return (
-    <div className="bg-white text-black p-3" style={{ width: '297mm', height: '210mm', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box' }}>
+    <div className="bg-white text-black p-3" style={{ width: '297mm', height: '210mm', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box', overflow: 'hidden' }}>
       <header className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-3">
           <img src={adCamposLogo} alt="AD Campos Logo" className="w-16 h-16" />
@@ -177,7 +177,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
           <p className="text-xs"><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p>
         </div>
       </header>
-      <div className="overflow-x-auto">
+      <div>
         <table className="w-full border-collapse border border-black text-[12px]">
           <thead><tr className="bg-gray-200 font-bold"><th className="border border-black px-2 py-1.5 text-left">Nome da Classe</th><th className="border border-black px-2 py-1.5">Matriculados</th><th className="border border-black px-2 py-1.5">Presentes</th><th className="border border-black px-2 py-1.5">Visitantes</th><th className="border border-black px-2 py-1.5">Ausentes</th><th className="border border-black px-2 py-1.5">Total Presentes</th><th className="border border-black px-2 py-1.5">Bíblias</th><th className="border border-black px-2 py-1.5">Revistas</th><th className="border border-black px-2 py-1.5">Ofertas</th><th className="border border-black px-2 py-1.5">Rank</th></tr></thead>
           <tbody>
@@ -377,7 +377,14 @@ export const ReportsTab = () => {
                 .printable-area { display: none; }
               }
               @media print {
-                * { box-sizing: border-box; }
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                html, body { 
+                  width: 100%; 
+                  height: 100%; 
+                  margin: 0; 
+                  padding: 0;
+                  overflow: hidden;
+                }
                 body * { visibility: hidden; }
                 .printable-area, .printable-area * { visibility: visible; }
                 .printable-area { 
@@ -386,17 +393,25 @@ export const ReportsTab = () => {
                   top: 0; 
                   width: 100%; 
                   height: 100%; 
+                  margin: 0;
+                  padding: 0;
                   overflow: hidden;
                 }
                 .printable-area > div {
-                  page-break-after: avoid;
-                  page-break-before: avoid;
-                  page-break-inside: avoid;
+                  page-break-after: avoid !important;
+                  page-break-before: avoid !important;
+                  page-break-inside: avoid !important;
+                  break-after: avoid !important;
+                  break-before: avoid !important;
+                  break-inside: avoid !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
                 }
                 @page { 
                   size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"}; 
                   margin: 0; 
                 }
+                .no-print { display: none !important; }
               }
             `}</style>
             {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} ebdObservations={ebdObservations} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} />}

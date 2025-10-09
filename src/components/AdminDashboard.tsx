@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ComposedChart } from "recharts";
 import { CalendarDays, TrendingUp, Users, DollarSign } from "lucide-react";
 
 interface DashboardStats {
@@ -379,6 +379,40 @@ export const AdminDashboard = () => {
                         <TabsTrigger value="financial">Financeiro</TabsTrigger>
                     </TabsList>
                     <TabsContent value="overview">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Frequência Média</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-primary">
+                                        {attendanceData.length > 0 
+                                            ? Math.round(attendanceData.reduce((sum, item) => sum + item.attendance, 0) / attendanceData.length)
+                                            : 0}%
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total de Registros</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-blue-600">
+                                        {quarterlyData.reduce((sum: number, item: any) => sum + (item.registrations || 0), 0)}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total de Presenças</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-green-600">
+                                        {quarterlyData.reduce((sum: number, item: any) => sum + (item.presence || 0), 0)}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
                         <ChartContainer config={{}} className="h-80 w-full">
                             <BarChart data={quarterlyData}>
                                 <CartesianGrid strokeDasharray="3 3" />
@@ -388,6 +422,31 @@ export const AdminDashboard = () => {
                                 <Bar dataKey="presence" fill="hsl(var(--primary))" name="Presenças" />
                                 <Bar dataKey="registrations" fill="hsl(var(--secondary))" name="Registros" />
                             </BarChart>
+                        </ChartContainer>
+                    </TabsContent>
+                    <TabsContent value="attendance">
+                        <ChartContainer config={{}} className="h-80 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={attendanceData.map((item) => {
+                                    const totalEnrolled = stats.totalStudents;
+                                    const present = Math.round((item.attendance * totalEnrolled) / 100);
+                                    const absent = totalEnrolled - present;
+                                    return {
+                                        dayOfWeek: item.dayOfWeek,
+                                        enrolled: totalEnrolled,
+                                        present,
+                                        absent
+                                    };
+                                })}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="dayOfWeek" />
+                                    <YAxis />
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                    <Bar dataKey="present" fill="#FB923C" name="Presentes" stackId="a" />
+                                    <Bar dataKey="absent" fill="#A78BFA" name="Ausentes" stackId="a" />
+                                    <Line type="monotone" dataKey="enrolled" stroke="#3B82F6" strokeWidth={2} dot={{ r: 4 }} name="Matriculados" />
+                                </ComposedChart>
+                            </ResponsiveContainer>
                         </ChartContainer>
                     </TabsContent>
                     <TabsContent value="financial">
@@ -406,7 +465,7 @@ export const AdminDashboard = () => {
                            <BarChart data={classData} layout="vertical">
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis type="number" />
-                                <YAxis dataKey="className" type="category" width={150} />
+                                <YAxis dataKey="className" type="category" width={250} style={{ fontSize: '12px' }} />
                                 <ChartTooltip content={<ChartTooltipContent />} />
                                 <Bar dataKey="present" fill="hsl(var(--primary))" name="Presentes" stackId="a" />
                                 <Bar dataKey="enrolled" fill="hsl(var(--muted))" name="Matriculados" stackId="a" />
