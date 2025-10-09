@@ -47,19 +47,19 @@ interface ReportData {
 
 // Componentes do Relatório (definidos fora para melhor performance)
 const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
-  <div className="bg-white text-black p-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '12pt', boxSizing: 'border-box' }}>
-    <header className="flex items-start justify-between pb-3">
-      <div className="flex items-center gap-4">
-        <img src={adCamposLogo} alt="AD Campos Logo" className="w-[75px] h-[75px]" />
+  <div className="bg-white text-black px-8 py-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box', margin: '0 auto' }}>
+    <header className="flex items-start justify-between pb-2">
+      <div className="flex items-center gap-3">
+        <img src={adCamposLogo} alt="AD Campos Logo" className="w-[70px] h-[70px]" />
         <div>
-          <h1 className="text-lg font-bold">Catedral das Assembleias de Deus em Campos</h1>
-          <h2 className="text-base">Secretaria da Escola Bíblica Dominical - EBD</h2>
+          <h1 className="text-base font-bold">Catedral das Assembleias de Deus em Campos</h1>
+          <h2 className="text-sm">Secretaria da Escola Bíblica Dominical - EBD</h2>
           <p className="text-xs text-gray-600">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
         </div>
       </div>
       <div className="text-right">
-        <p className="text-base font-bold">Ano</p>
-        <p className="text-4xl font-bold tracking-tighter">2025</p>
+        <p className="text-sm font-bold">Ano</p>
+        <p className="text-3xl font-bold tracking-tighter">2025</p>
       </div>
     </header>
     <div className="text-center"><h3 className="text-lg font-bold">RELATÓRIO DA ESCOLA BÍBLICA DOMINICAL</h3></div>
@@ -113,19 +113,17 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
           <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM PIX/CARTÃO:</span><span className="font-bold">R$ {reportData?.pixTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
       </div>
 
-      <div className="border border-black p-2 h-20 text-xs mb-1">
+      <div className="border border-black p-2 h-16 text-xs">
         <span className="font-bold">OBSERVAÇÕES:</span>
         {ebdObservations && (
           <p className="mt-1 text-[9pt]">{ebdObservations}</p>
         )}
       </div>
-    </main>
-    
-    <footer className="mt-auto">
-      <div className="text-center">
+      
+      <div className="text-center mt-2">
         <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
-    </footer>
+    </main>
   </div>
 );
 
@@ -162,19 +160,19 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
   const allClassesOrdered = [...rankedChildren, ...rankedAdolescents, ...rankedAdults];
 
   return (
-    <div className="bg-white text-black p-3" style={{ width: '297mm', height: '210mm', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box', overflow: 'hidden' }}>
+    <div className="bg-white text-black px-6 py-4" style={{ width: '297mm', height: '210mm', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box', overflow: 'hidden', margin: '0 auto' }}>
       <header className="flex items-start justify-between mb-2">
-        <div className="flex items-center gap-3">
-          <img src={adCamposLogo} alt="AD Campos Logo" className="w-16 h-16" />
+        <div className="flex items-center gap-2">
+          <img src={adCamposLogo} alt="AD Campos Logo" className="w-14 h-14" />
           <div>
-            <h1 className="text-base font-bold">Catedral das Assembleias de Deus em Campos</h1>
-            <h2 className="text-sm">Secretaria da Escola Bíblica Dominical - EBD</h2>
-            <p className="text-xs text-gray-700">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
+            <h1 className="text-sm font-bold">Catedral das Assembleias de Deus em Campos</h1>
+            <h2 className="text-xs">Secretaria da Escola Bíblica Dominical - EBD</h2>
+            <p className="text-[10px] text-gray-700">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-sm font-bold">Ano 2025</p>
-          <p className="text-xs"><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p>
+          <p className="text-xs font-bold">Ano 2025</p>
+          <p className="text-[10px]"><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p>
         </div>
       </header>
       <div>
@@ -189,17 +187,20 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
           </tbody>
         </table>
       </div>
-      <div className="mt-2 border-2 border-black p-2">
-        <h3 className="text-base font-bold text-center mb-1">TOTAL GERAL</h3>
-        <div className="flex justify-around items-center text-center text-[13px]">
-            <div><p>Matriculados</p><p className="font-bold text-lg">{reportData?.totalEnrolled || 0}</p></div>
-            <div><p>Ausentes</p><p className="font-bold text-lg">{reportData?.totalAbsent || 0}</p></div>
-            <div><p>Visitantes</p><p className="font-bold text-lg">{reportData?.totalVisitors || 0}</p></div>
-            <div><p>Total Presentes</p><p className="font-bold text-lg">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</p></div>
-            <div><p>Bíblias</p><p className="font-bold text-lg">{reportData?.totalBibles || 0}</p></div>
-            <div><p>Revistas</p><p className="font-bold text-lg">{reportData?.totalMagazines || 0}</p></div>
-            <div><p>Ofertas</p><p className="font-bold text-lg">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</p></div>
+      <div className="mt-1.5 border-2 border-black p-2">
+        <h3 className="text-sm font-bold text-center mb-1">TOTAL GERAL</h3>
+        <div className="flex justify-around items-center text-center text-xs">
+            <div><p>Matriculados</p><p className="font-bold text-base">{reportData?.totalEnrolled || 0}</p></div>
+            <div><p>Ausentes</p><p className="font-bold text-base">{reportData?.totalAbsent || 0}</p></div>
+            <div><p>Visitantes</p><p className="font-bold text-base">{reportData?.totalVisitors || 0}</p></div>
+            <div><p>Total Presentes</p><p className="font-bold text-base">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</p></div>
+            <div><p>Bíblias</p><p className="font-bold text-base">{reportData?.totalBibles || 0}</p></div>
+            <div><p>Revistas</p><p className="font-bold text-base">{reportData?.totalMagazines || 0}</p></div>
+            <div><p>Ofertas</p><p className="font-bold text-base">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</p></div>
         </div>
+      </div>
+      <div className="text-center mt-2">
+        <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
     </div>
   );

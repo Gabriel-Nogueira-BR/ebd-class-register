@@ -379,7 +379,7 @@ export const AdminDashboard = () => {
                         <TabsTrigger value="financial">Financeiro</TabsTrigger>
                     </TabsList>
                     <TabsContent value="overview">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <Card>
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-sm font-medium text-muted-foreground">Frequência Média</CardTitle>
@@ -394,21 +394,11 @@ export const AdminDashboard = () => {
                             </Card>
                             <Card>
                                 <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total de Registros</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-blue-600">
-                                        {quarterlyData.reduce((sum: number, item: any) => sum + (item.registrations || 0), 0)}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <Card>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total de Presenças</CardTitle>
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Total de Ofertas</CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold text-green-600">
-                                        {quarterlyData.reduce((sum: number, item: any) => sum + (item.presence || 0), 0)}
+                                        R$ {quarterlyData.reduce((sum: number, item: any) => sum + (item.offerings || 0), 0).toFixed(2).replace('.', ',')}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -465,7 +455,7 @@ export const AdminDashboard = () => {
                            <BarChart data={classData} layout="vertical">
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis type="number" />
-                                <YAxis dataKey="className" type="category" width={250} style={{ fontSize: '12px' }} />
+                                <YAxis dataKey="className" type="category" width={350} style={{ fontSize: '11px' }} />
                                 <ChartTooltip content={<ChartTooltipContent />} />
                                 <Bar dataKey="present" fill="hsl(var(--primary))" name="Presentes" stackId="a" />
                                 <Bar dataKey="enrolled" fill="hsl(var(--muted))" name="Matriculados" stackId="a" />
