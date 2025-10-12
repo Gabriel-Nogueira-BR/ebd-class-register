@@ -321,53 +321,67 @@ export const ReportsTab = () => {
   };
 
   const handlePrint = () => {
-    const printableContent = printableAreaRef.current;
-    if (!printableContent) return;
+    const printContent = printableAreaRef.current?.innerHTML;
+    if (!printContent) return;
 
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'absolute';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    document.body.appendChild(iframe);
+    const printWindow = window.open('', '', 'height=800,width=800');
+    if (printWindow) {
+      printWindow.document.write('<html><head><title>Relatório EBD</title>');
 
-    const doc = iframe.contentWindow!.document;
-    doc.open();
+      // Get all style sheets from the main document
+      Array.from(document.styleSheets).forEach(styleSheet => {
+        try {
+          if (styleSheet.href) {
+            printWindow.document.write(`<link rel="stylesheet" href="${styleSheet.href}">`);
+          } 
+          else if (styleSheet.cssRules) {
+            printWindow.document.write('<style>');
+            Array.from(styleSheet.cssRules).forEach(rule => {
+              printWindow.document.write(rule.cssText);
+            });
+            printWindow.document.write('</style>');
+          }
+        } catch (e) {
+          console.warn('Could not copy stylesheet for printing:', e);
+        }
+      });
+      
+      printWindow.document.write(`
+        <style>
+          @page {
+            size: ${reportType === 'general' ? 'A4 portrait' : 'A4 landscape'};
+            margin: 0 !important;
+          }
+          body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          body > div {
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 6mm !important;
+            box-sizing: border-box;
+          }
+        </style>
+      `);
 
-    // Only inject Tailwind and specific print styles
-    doc.write(`
-      <html>
-        <head>
-          <title>Relatório EBD</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-          <style>
-            @page {
-              size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"};
-              margin: 6mm;
-            }
-            body {
-              margin: 0;
-              -webkit-print-color-adjust: exact;
-              color-adjust: exact;
-            }
-          </style>
-        </head>
-        <body>
-          ${printableContent.innerHTML}
-        </body>
-      </html>
-    `);
-    doc.close();
-    
-    iframe.onload = () => {
-      // A delay is necessary for external resources like Tailwind to load and render
-      setTimeout(() => {
-        iframe.contentWindow!.focus();
-        iframe.contentWindow!.print();
-        // Clean up the iframe after printing
-        document.body.removeChild(iframe);
-      }, 500); 
-    };
+      printWindow.document.write('</head><body>');
+      printWindow.document.write(printContent);
+      printWindow.document.write('</body></html>');
+      printWindow.document.close();
+
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.focus();
+          printWindow.print();
+          printWindow.close();
+        }, 500);
+      };
+    }
   };
 
   return (
