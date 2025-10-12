@@ -47,8 +47,8 @@ interface ReportData {
 
 // Componentes do Relatório (definidos fora para melhor performance)
 const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
-  <div className="bg-white text-black px-8 py-6" style={{ width: '193mm', height: '280mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box', margin: '0 auto', overflow: 'hidden' }}>
-    <header className="flex items-start justify-between pb-2">
+  <div className="bg-white text-black px-6 py-4" style={{ width: '193mm', height: '280mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box', margin: '0 auto' }}>
+    <header className="flex items-start justify-between pb-1">
       <div className="flex items-center gap-3">
         <img src={adCamposLogo} alt="AD Campos Logo" className="w-[70px] h-[70px]" />
         <div>
@@ -113,14 +113,14 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
           <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM PIX/CARTÃO:</span><span className="font-bold">R$ {reportData?.pixTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
       </div>
 
-      <div className="border border-black p-2 h-16 text-xs">
+      <div className="border border-black p-2 h-14 text-xs">
         <span className="font-bold">OBSERVAÇÕES:</span>
         {ebdObservations && (
           <p className="mt-1 text-[9pt]">{ebdObservations}</p>
         )}
       </div>
       
-      <div className="text-center mt-2" style={{ marginTop: 'auto' }}>
+      <div className="text-center mt-1" style={{ marginTop: 'auto' }}>
         <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
     </main>
@@ -160,7 +160,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
   const allClassesOrdered = [...rankedChildren, ...rankedAdolescents, ...rankedAdults];
 
   return (
-    <div className="bg-white text-black px-6 py-4" style={{ width: '280mm', height: '193mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden', margin: '0 auto' }}>
+    <div className="bg-white text-black px-6 py-4" style={{ width: '280mm', height: '193mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', margin: '0 auto' }}>
       <header className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           <img src={adCamposLogo} alt="AD Campos Logo" className="w-14 h-14" />
@@ -199,7 +199,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
             <div><p>Ofertas</p><p className="font-bold text-base">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</p></div>
         </div>
       </div>
-      <div className="text-center mt-2" style={{ marginTop: 'auto' }}>
+      <div className="text-center mt-1" style={{ marginTop: 'auto' }}>
         <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
     </div>
@@ -380,23 +380,24 @@ export const ReportsTab = () => {
               @media print {
                 * { box-sizing: border-box; margin: 0; padding: 0; }
                 html, body { 
-                  width: 100%; 
-                  height: 100%; 
+                  width: auto; 
+                  height: auto; 
                   margin: 0; 
                   padding: 0;
-                  overflow: hidden;
+                  overflow: visible;
                 }
                 body * { visibility: hidden; }
                 .printable-area, .printable-area * { visibility: visible; }
                 .printable-area { 
-                  position: absolute; 
-                  left: 0; 
-                  top: 0; 
-                  width: 100%; 
-                  height: 100%; 
-                  margin: 0;
-                  padding: 0;
-                  overflow: hidden;
+                  position: static !important; 
+                  left: auto; 
+                  top: auto; 
+                  width: auto !important; 
+                  height: auto !important; 
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  overflow: visible !important;
+                  display: block !important;
                 }
                 .printable-area > div {
                   page-break-after: avoid !important;
@@ -405,12 +406,12 @@ export const ReportsTab = () => {
                   break-after: avoid !important;
                   break-before: avoid !important;
                   break-inside: avoid !important;
-                  margin: 0 !important;
+                  margin: 0 auto !important;
                   padding: 0 !important;
                 }
                 @page { 
                   size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"}; 
-                  margin: 8mm; 
+                  margin: 6mm; 
                 }
                 .no-print { display: none !important; }
               }
