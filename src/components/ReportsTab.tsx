@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
-import { supabase } from "../integrations/supabase/client";
+import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { CalendarDays, FileText, Download } from "lucide-react";
-import adCamposLogo from "../assets/ad-campos-logo.png";
+import adCamposLogo from "@/assets/ad-campos-logo.png";
 
 interface ReportData {
   totalEnrolled: number;
@@ -47,7 +47,7 @@ interface ReportData {
 
 // Componentes do Relatório (definidos fora para melhor performance)
 const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
-  <div className="bg-white text-black px-6 py-4" style={{ width: '193mm', height: '280mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box', margin: '0 auto' }}>
+  <div className="bg-white text-black px-6 py-4" style={{ width: '193mm', height: '280mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box' }}>
     <header className="flex items-start justify-between pb-1">
       <div className="flex items-center gap-3">
         <img src={adCamposLogo} alt="AD Campos Logo" className="w-[70px] h-[70px]" />
@@ -160,7 +160,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
   const allClassesOrdered = [...rankedChildren, ...rankedAdolescents, ...rankedAdults];
 
   return (
-    <div className="bg-white text-black px-6 py-4" style={{ width: '280mm', height: '193mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', margin: '0 auto' }}>
+    <div className="bg-white text-black px-6 py-4" style={{ width: '280mm', height: '193mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
       <header className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           <img src={adCamposLogo} alt="AD Campos Logo" className="w-14 h-14" />
@@ -215,6 +215,7 @@ export const ReportsTab = () => {
   const [noData, setNoData] = useState(false);
   const [reportType, setReportType] = useState<"general" | "classes">("general");
   const [ebdObservations, setEbdObservations] = useState<string>("");
+  const printableAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchAvailableDates();
@@ -319,6 +320,63 @@ export const ReportsTab = () => {
     fetchReportData(date);
   };
 
+  const handlePrint = () => {
+    const printableContent = printableAreaRef.current;
+    if (!printableContent) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow!.document;
+    doc.open();
+
+    const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'));
+    let stylesHtml = '';
+    stylesheets.forEach(sheet => {
+      if (sheet.tagName === 'LINK') {
+        stylesHtml += `<link rel="stylesheet" href="${(sheet as HTMLLinkElement).href}">`;
+      } else {
+        stylesHtml += `<style>${sheet.innerHTML}</style>`;
+      }
+    });
+
+    doc.write(`
+      <html>
+        <head>
+          <title>Relatório EBD</title>
+          ${stylesHtml}
+          <style>
+            @page {
+              size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"};
+              margin: 6mm;
+            }
+            body {
+              margin: 0;
+              -webkit-print-color-adjust: exact;
+              color-adjust: exact;
+            }
+          </style>
+        </head>
+        <body>
+          ${printableContent.innerHTML}
+        </body>
+      </html>
+    `);
+    doc.close();
+    
+    iframe.onload = () => {
+      setTimeout(() => {
+        iframe.contentWindow!.focus();
+        iframe.contentWindow!.print();
+        document.body.removeChild(iframe);
+      }, 250); // Delay to ensure styles are loaded
+    };
+  };
+
   return (
     <div className="space-y-6">
       <Card className="no-print">
@@ -363,7 +421,7 @@ export const ReportsTab = () => {
             <Separator />
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Visualização: {reportType === "general" ? "Relatório Geral" : "Relatório por Classes"}</h3>
-              <Button onClick={() => window.print()} className="flex items-center gap-2"><Download className="h-4 w-4" />Imprimir/Salvar PDF</Button>
+              <Button onClick={handlePrint} className="flex items-center gap-2"><Download className="h-4 w-4" />Imprimir/Salvar PDF</Button>
             </div>
             <div className="border rounded-lg overflow-auto bg-gray-200 p-4 flex justify-center">
               <div style={{ transform: 'scale(0.8)', transformOrigin: 'top center' }}>
@@ -372,41 +430,10 @@ export const ReportsTab = () => {
             </div>
           </div>
 
-          <div className="printable-area">
-            <style>{`
-              @media screen {
-                .printable-area {
-                  display: none;
-                }
-              }
-              @media print {
-                html, body {
-                  height: 100%;
-                  margin: 0;
-                  padding: 0;
-                }
-                .no-print {
-                  display: none !important;
-                }
-                body * {
-                  visibility: hidden;
-                }
-                .printable-area, .printable-area * {
-                  visibility: visible;
-                }
-                .printable-area {
-                  position: absolute;
-                  left: 0;
-                  top: 0;
-                  width: 100%;
-                }
-                @page {
-                  size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"};
-                  margin: 0;
-                }
-              }
-            `}</style>
-            {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} ebdObservations={ebdObservations} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} />}
+          <div className="hidden">
+            <div ref={printableAreaRef}>
+              {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} ebdObservations={ebdObservations} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} />}
+            </div>
           </div>
         </>
       )}
