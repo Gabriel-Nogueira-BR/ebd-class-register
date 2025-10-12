@@ -447,4 +447,3 @@ export const ReportsTab = () => {
     </div>
   );
 };
-
