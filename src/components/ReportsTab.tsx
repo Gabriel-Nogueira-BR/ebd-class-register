@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "../integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { CalendarDays, FileText, Download } from "lucide-react";
-import adCamposLogo from "@/assets/ad-campos-logo.png";
+import adCamposLogo from "../assets/ad-campos-logo.png";
 
 interface ReportData {
   totalEnrolled: number;
@@ -375,45 +375,33 @@ export const ReportsTab = () => {
           <div className="printable-area">
             <style>{`
               @media screen {
-                .printable-area { display: none; }
+                .printable-area { 
+                  display: none; 
+                }
               }
               @media print {
-                * { box-sizing: border-box; margin: 0; padding: 0; }
-                html, body { 
-                  width: auto; 
-                  height: auto; 
-                  margin: 0; 
+                body * {
+                  visibility: hidden;
+                }
+                .printable-area, .printable-area * {
+                  visibility: visible;
+                }
+                .printable-area {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                  height: auto;
+                  margin: 0;
                   padding: 0;
-                  overflow: visible;
-                }
-                body * { visibility: hidden; }
-                .printable-area, .printable-area * { visibility: visible; }
-                .printable-area { 
-                  position: static !important; 
-                  left: auto; 
-                  top: auto; 
-                  width: auto !important; 
-                  height: auto !important; 
-                  margin: 0 !important;
-                  padding: 0 !important;
-                  overflow: visible !important;
-                  display: block !important;
-                }
-                .printable-area > div {
-                  page-break-after: avoid !important;
-                  page-break-before: avoid !important;
-                  page-break-inside: avoid !important;
-                  break-after: avoid !important;
-                  break-before: avoid !important;
-                  break-inside: avoid !important;
-                  margin: 0 auto !important;
-                  padding: 0 !important;
                 }
                 @page { 
                   size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"}; 
-                  margin: 6mm; 
+                  margin: 0; 
                 }
-                .no-print { display: none !important; }
+                .no-print { 
+                  display: none !important; 
+                }
               }
             `}</style>
             {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} ebdObservations={ebdObservations} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} />}
@@ -423,3 +411,4 @@ export const ReportsTab = () => {
     </div>
   );
 };
+
