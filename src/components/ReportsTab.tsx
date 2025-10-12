@@ -47,7 +47,7 @@ interface ReportData {
 
 // Componentes do Relatório (definidos fora para melhor performance)
 const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
-  <div className="bg-white text-black px-8 py-6" style={{ width: '210mm', height: '297mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box', margin: '0 auto' }}>
+  <div className="bg-white text-black px-8 py-6" style={{ width: '186mm', height: '273mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box', margin: '0 auto' }}>
     <header className="flex items-start justify-between pb-2">
       <div className="flex items-center gap-3">
         <img src={adCamposLogo} alt="AD Campos Logo" className="w-[70px] h-[70px]" />
@@ -160,7 +160,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
   const allClassesOrdered = [...rankedChildren, ...rankedAdolescents, ...rankedAdults];
 
   return (
-    <div className="bg-white text-black px-6 py-4" style={{ width: '297mm', height: '210mm', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box', overflow: 'hidden', margin: '0 auto' }}>
+    <div className="bg-white text-black px-6 py-4" style={{ width: '273mm', height: '186mm', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box', overflow: 'hidden', margin: '0 auto' }}>
       <header className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           <img src={adCamposLogo} alt="AD Campos Logo" className="w-14 h-14" />
@@ -406,11 +406,11 @@ export const ReportsTab = () => {
                   break-before: avoid !important;
                   break-inside: avoid !important;
                   margin: 0 !important;
-                  padding: 0 !important;
+                  
                 }
                 @page { 
                   size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"}; 
-                  margin: 0; 
+                  margin: 12mm; 
                 }
                 .no-print { display: none !important; }
               }
