@@ -47,7 +47,7 @@ interface ReportData {
 
 // Componentes do Relatório (definidos fora para melhor performance)
 const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
-  <div className="bg-white text-black px-8 py-6" style={{ width: '186mm', height: '273mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box', margin: '0 auto' }}>
+  <div className="bg-white text-black px-8 py-6" style={{ width: '193mm', height: '280mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box', margin: '0 auto', overflow: 'hidden' }}>
     <header className="flex items-start justify-between pb-2">
       <div className="flex items-center gap-3">
         <img src={adCamposLogo} alt="AD Campos Logo" className="w-[70px] h-[70px]" />
@@ -65,7 +65,7 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
     <div className="text-center"><h3 className="text-lg font-bold">RELATÓRIO DA ESCOLA BÍBLICA DOMINICAL</h3></div>
     <div className="flex justify-end text-xs mt-1 mb-1"><p><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p></div>
     
-    <main className="flex-grow">
+    <main className="flex-grow" style={{ display: 'flex', flexDirection: 'column' }}>
       <div className="grid grid-cols-2 gap-x-4 mb-1">
         <div className="space-y-0.5">
           <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>ALUNOS MATRICULADOS:</span><span className="font-bold">{reportData?.totalEnrolled || 0}</span></div>
@@ -120,7 +120,7 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
         )}
       </div>
       
-      <div className="text-center mt-2">
+      <div className="text-center mt-2" style={{ marginTop: 'auto' }}>
         <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
     </main>
@@ -160,7 +160,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
   const allClassesOrdered = [...rankedChildren, ...rankedAdolescents, ...rankedAdults];
 
   return (
-    <div className="bg-white text-black px-6 py-4" style={{ width: '273mm', height: '186mm', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box', overflow: 'hidden', margin: '0 auto' }}>
+    <div className="bg-white text-black px-6 py-4" style={{ width: '280mm', height: '193mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden', margin: '0 auto' }}>
       <header className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           <img src={adCamposLogo} alt="AD Campos Logo" className="w-14 h-14" />
@@ -199,7 +199,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
             <div><p>Ofertas</p><p className="font-bold text-base">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</p></div>
         </div>
       </div>
-      <div className="text-center mt-2">
+      <div className="text-center mt-2" style={{ marginTop: 'auto' }}>
         <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
     </div>
@@ -406,11 +406,11 @@ export const ReportsTab = () => {
                   break-before: avoid !important;
                   break-inside: avoid !important;
                   margin: 0 !important;
-                  
+                  padding: 0 !important;
                 }
                 @page { 
                   size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"}; 
-                  margin: 12mm; 
+                  margin: 8mm; 
                 }
                 .no-print { display: none !important; }
               }
