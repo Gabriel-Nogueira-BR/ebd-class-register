@@ -375,11 +375,19 @@ export const ReportsTab = () => {
           <div className="printable-area">
             <style>{`
               @media screen {
-                .printable-area { 
-                  display: none; 
+                .printable-area {
+                  display: none;
                 }
               }
               @media print {
+                html, body {
+                  height: 100%;
+                  margin: 0;
+                  padding: 0;
+                }
+                .no-print {
+                  display: none !important;
+                }
                 body * {
                   visibility: hidden;
                 }
@@ -391,16 +399,10 @@ export const ReportsTab = () => {
                   left: 0;
                   top: 0;
                   width: 100%;
-                  height: auto;
+                }
+                @page {
+                  size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"};
                   margin: 0;
-                  padding: 0;
-                }
-                @page { 
-                  size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"}; 
-                  margin: 0; 
-                }
-                .no-print { 
-                  display: none !important; 
                 }
               }
             `}</style>
