@@ -334,21 +334,12 @@ export const ReportsTab = () => {
     const doc = iframe.contentWindow!.document;
     doc.open();
 
-    const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'));
-    let stylesHtml = '';
-    stylesheets.forEach(sheet => {
-      if (sheet.tagName === 'LINK') {
-        stylesHtml += `<link rel="stylesheet" href="${(sheet as HTMLLinkElement).href}">`;
-      } else {
-        stylesHtml += `<style>${sheet.innerHTML}</style>`;
-      }
-    });
-
+    // Only inject Tailwind and specific print styles
     doc.write(`
       <html>
         <head>
           <title>Relatório EBD</title>
-          ${stylesHtml}
+          <script src="https://cdn.tailwindcss.com"></script>
           <style>
             @page {
               size: ${reportType === "general" ? "A4 portrait" : "A4 landscape"};
@@ -369,11 +360,13 @@ export const ReportsTab = () => {
     doc.close();
     
     iframe.onload = () => {
+      // A delay is necessary for external resources like Tailwind to load and render
       setTimeout(() => {
         iframe.contentWindow!.focus();
         iframe.contentWindow!.print();
+        // Clean up the iframe after printing
         document.body.removeChild(iframe);
-      }, 250); // Delay to ensure styles are loaded
+      }, 500); 
     };
   };
 
