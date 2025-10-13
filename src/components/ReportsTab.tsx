@@ -320,69 +320,105 @@ export const ReportsTab = () => {
     fetchReportData(date);
   };
 
-  const handlePrint = () => {
-    const printContent = printableAreaRef.current?.innerHTML;
-    if (!printContent) return;
+const handlePrint = () => {
+  const printContent = printableAreaRef.current?.innerHTML;
+  if (!printContent) return;
 
-    const printWindow = window.open('', '', 'height=800,width=800');
-    if (printWindow) {
-      printWindow.document.write('<html><head><title>Relatório EBD</title>');
+  const printWindow = window.open('', '', 'height=800,width=800');
+  if (printWindow) {
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Relatório EBD</title>
+          <style>
+            @media print {
+              @page {
+                size: A4 portrait;
+                margin: 0.5cm; /* Margem mínima para caber tudo sem cortar */
+              }
+              body {
+                margin: 0 !important;
+                padding: 0 !important;
+                font-family: 'Arial', sans-serif;
+                font-size: 11pt;
+                line-height: 1.2; /* Reduz espaçamento vertical */
+                color: black;
+              }
+              img {
+                max-width: 100px;
+                height: auto;
+                page-break-inside: avoid;
+                margin-bottom: 0.5cm;
+              }
+              h1, h2, h3, h4 {
+                page-break-after: avoid;
+                page-break-inside: avoid;
+                margin-top: 0.2cm;
+                margin-bottom: 0.3cm;
+                font-size: 12pt;
+              }
+              p {
+                margin: 0.1cm 0;
+                page-break-inside: avoid;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                page-break-inside: avoid;
+                font-size: 10pt;
+              }
+              table th, table td {
+                border: 1px solid black;
+                padding: 0.2cm;
+                text-align: center;
+              }
+              /* Evita elementos invisíveis ocupando espaço */
+              .no-print, [style*="display: none"] {
+                display: none !important;
+              }
+              /* Força quebra só após seções principais */
+              .section-break {
+                page-break-before: always;
+              }
+            }
+            /* Estilos base para preview (se quiser ver antes de imprimir) */
+            body {
+              margin: 1cm;
+              font-family: 'Arial', sans-serif;
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
 
-      // Get all style sheets from the main document
-      Array.from(document.styleSheets).forEach(styleSheet => {
-        try {
-          if (styleSheet.href) {
-            printWindow.document.write(`<link rel="stylesheet" href="${styleSheet.href}">`);
-          } 
-          else if (styleSheet.cssRules) {
-            printWindow.document.write('<style>');
-            Array.from(styleSheet.cssRules).forEach(rule => {
-              printWindow.document.write(rule.cssText);
-            });
-            printWindow.document.write('</style>');
-          }
-        } catch (e) {
-          console.warn('Could not copy stylesheet for printing:', e);
+    // Copia estilos existentes da página principal (mas o media print sobrepõe)
+    Array.from(document.styleSheets).forEach((styleSheet) => {
+      try {
+        if (styleSheet.href) {
+          const link = printWindow.document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = styleSheet.href;
+          printWindow.document.head.appendChild(link);
+        } else if (styleSheet.cssRules) {
+          const style = printWindow.document.createElement('style');
+          style.textContent = Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('\n');
+          printWindow.document.head.appendChild(style);
         }
-      });
-      
-      printWindow.document.write(`
-        <style>
-          @page {
-            size: ${reportType === 'general' ? 'A4 portrait' : 'A4 landscape'};
-            margin: 0 !important;
-          }
-          body {
-            margin: 0 !important;
-            padding: 0 !important;
-            background-color: white !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          body > div {
-            width: 100% !important;
-            height: 100% !important;
-            margin: 0 !important;
-            padding: 6mm !important;
-            box-sizing: border-box;
-          }
-        </style>
-      `);
+      } catch (e) {
+        console.warn('Erro ao copiar estilo:', e);
+      }
+    });
 
-      printWindow.document.write('</head><body>');
-      printWindow.document.write(printContent);
-      printWindow.document.write('</body></html>');
-      printWindow.document.close();
-
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.focus();
-          printWindow.print();
-          printWindow.close();
-        }, 500);
-      };
-    }
-  };
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  }
+};
 
   return (
     <div className="space-y-6">
