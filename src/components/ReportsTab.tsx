@@ -322,7 +322,11 @@ export const ReportsTab = () => {
 
 const handlePrint = () => {
   const printContent = printableAreaRef.current?.innerHTML;
-  if (!printContent) return;
+  console.log('Conteúdo para impressão:', printContent); // Debug: verifique no console se tem HTML
+  if (!printContent) {
+    alert('Erro: Conteúdo não encontrado para impressão.');
+    return;
+  }
 
   const printWindow = window.open('', '', 'height=800,width=800');
   if (printWindow) {
@@ -330,20 +334,65 @@ const handlePrint = () => {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Relatório EBD</title>
+          <title>Relatório EBD - Pré-visualização</title>
           <style>
+            /* Estilos para tela (preview na janela) */
+            body {
+              margin: 1cm !important;
+              padding: 0 !important;
+              font-family: 'Arial', sans-serif;
+              font-size: 11pt;
+              line-height: 1.3;
+              color: black !important;
+              background: white !important;
+            }
+            img {
+              max-width: 100px;
+              height: auto;
+              display: block;
+              margin-bottom: 10px;
+            }
+            h1, h2, h3, h4 {
+              margin-top: 5px;
+              margin-bottom: 8px;
+              font-size: 12pt;
+              color: black !important;
+            }
+            p, div {
+              margin: 5px 0;
+              color: black !important;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 10pt;
+              margin-top: 10px;
+            }
+            table th, table td {
+              border: 1px solid black;
+              padding: 4px;
+              text-align: center;
+              color: black !important;
+            }
+            /* Evita elementos escondidos */
+            .no-print, [style*="display: none"] {
+              display: none !important;
+            }
+
+            /* Estilos para impressão/PDF */
             @media print {
               @page {
                 size: A4 portrait;
-                margin: 0.5cm; /* Margem mínima para caber tudo sem cortar */
+                margin: 0.5cm;
               }
               body {
                 margin: 0 !important;
                 padding: 0 !important;
                 font-family: 'Arial', sans-serif;
                 font-size: 11pt;
-                line-height: 1.2; /* Reduz espaçamento vertical */
-                color: black;
+                line-height: 1.2;
+                color: black !important;
+                background: white !important;
               }
               img {
                 max-width: 100px;
@@ -357,10 +406,12 @@ const handlePrint = () => {
                 margin-top: 0.2cm;
                 margin-bottom: 0.3cm;
                 font-size: 12pt;
+                color: black !important;
               }
-              p {
+              p, div {
                 margin: 0.1cm 0;
                 page-break-inside: avoid;
+                color: black !important;
               }
               table {
                 width: 100%;
@@ -372,20 +423,14 @@ const handlePrint = () => {
                 border: 1px solid black;
                 padding: 0.2cm;
                 text-align: center;
+                color: black !important;
               }
-              /* Evita elementos invisíveis ocupando espaço */
               .no-print, [style*="display: none"] {
                 display: none !important;
               }
-              /* Força quebra só após seções principais */
               .section-break {
                 page-break-before: always;
               }
-            }
-            /* Estilos base para preview (se quiser ver antes de imprimir) */
-            body {
-              margin: 1cm;
-              font-family: 'Arial', sans-serif;
             }
           </style>
         </head>
@@ -396,27 +441,15 @@ const handlePrint = () => {
     `);
     printWindow.document.close();
 
-    // Copia estilos existentes da página principal (mas o media print sobrepõe)
-    Array.from(document.styleSheets).forEach((styleSheet) => {
-      try {
-        if (styleSheet.href) {
-          const link = printWindow.document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = styleSheet.href;
-          printWindow.document.head.appendChild(link);
-        } else if (styleSheet.cssRules) {
-          const style = printWindow.document.createElement('style');
-          style.textContent = Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('\n');
-          printWindow.document.head.appendChild(style);
-        }
-      } catch (e) {
-        console.warn('Erro ao copiar estilo:', e);
-      }
-    });
-
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+    // Delay para renderizar antes de print
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+      // Não feche imediatamente para permitir preview
+      // printWindow.close(); // Comente se quiser manter a janela aberta para debug
+    }, 500);
+  } else {
+    alert('Erro: Não foi possível abrir a janela de impressão. Verifique pop-ups bloqueados.');
   }
 };
 
