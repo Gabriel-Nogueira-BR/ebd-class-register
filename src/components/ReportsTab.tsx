@@ -49,7 +49,7 @@ const ReportsTab: React.FC = () => {
   const [ebdObservations, setEbdObservations] = useState<string>('');
   const printableAreaRef = useRef<HTMLDivElement>(null);
 
-  // Funções para fetch data (assumindo que você tem; placeholder)
+  // Funções para fetch data (assumindo que você tem; placeholder com dados do PDF para teste)
   const fetchReportData = async (date: string) => {
     // Simule ou chame API; use dados do PDF 1 para teste
     return {
@@ -84,15 +84,27 @@ const ReportsTab: React.FC = () => {
   const fetchClassData = async (date: string) => {
     // Simule; use dados do PDF classes
     return [
-      // ... array de ClassData do PDF "Classificação EBD 05 10 1.pdf"
       { name: '01. OVELHINHAS E CORDEIRINHOS DE CRISTO (2 a 5 anos)', enrolled: 6, present: 3, visitors: 1, absent: 3, totalPresent: 4, bibles: 3, magazines: 5, offering: 'R$ 3,60', rank: '1°' },
-      // Adicione os outros...
+      { name: '02. SOLDADOS DE CRISTO (6 a 8 anos)', enrolled: 8, present: 4, visitors: 2, absent: 4, totalPresent: 6, bibles: 1, magazines: 6, offering: 'R$ 1,00', rank: '2°' },
+      { name: '03. ESTRELA DE DAVI (9 a 11 anos)', enrolled: 12, present: 3, visitors: 1, absent: 9, totalPresent: 4, bibles: 4, magazines: 4, offering: 'R$ 22,60', rank: '2°' },
+      { name: '04. LAEL (12 a 14 anos)', enrolled: 16, present: 7, visitors: 1, absent: 9, totalPresent: 8, bibles: 8, magazines: 7, offering: 'R$ 26,00', rank: '1°' },
+      { name: '05. ÁGAPE (15 a 17 anos)', enrolled: 8, present: 5, visitors: 0, absent: 3, totalPresent: 5, bibles: 5, magazines: 2, offering: 'R$ 5,00', rank: '3°' },
+      { name: '06. NOVA VIDA (Novos Convertidos)', enrolled: 14, present: 6, visitors: 1, absent: 8, totalPresent: 7, bibles: 8, magazines: 8, offering: 'R$ 11,15', rank: '-' },
+      { name: '07. EMANUEL (Jovens)', enrolled: 17, present: 7, visitors: 2, absent: 10, totalPresent: 9, bibles: 12, magazines: 10, offering: 'R$ 78,20', rank: '-' },
+      { name: '08. ESTER (irmãs)', enrolled: 16, present: 10, visitors: 0, absent: 6, totalPresent: 10, bibles: 10, magazines: 6, offering: 'R$ 27,60', rank: '-' },
+      { name: '09. LÍRIOS DOS VALES (irmãs)', enrolled: 14, present: 9, visitors: 1, absent: 5, totalPresent: 10, bibles: 10, magazines: 6, offering: 'R$ 215,00', rank: '-' },
+      { name: '10. VENCEDORAS PELA FÉ (irmãs)', enrolled: 17, present: 14, visitors: 2, absent: 3, totalPresent: 16, bibles: 16, magazines: 11, offering: 'R$ 241,00', rank: '2°' },
+      { name: '11. ESPERANÇA (irmãs)', enrolled: 19, present: 0, visitors: 1, absent: 19, totalPresent: 1, bibles: 10, magazines: 8, offering: 'R$ 221,00', rank: '3°' },
+      { name: '12. HERÓIS DA FÉ (irmãos)', enrolled: 12, present: 8, visitors: 1, absent: 4, totalPresent: 9, bibles: 7, magazines: 7, offering: 'R$ 20,50', rank: '-' },
+      { name: '13. DÉBORA (Pastora, Missionárias e Diaconisas)', enrolled: 28, present: 24, visitors: 3, absent: 4, totalPresent: 27, bibles: 27, magazines: 19, offering: 'R$ 73,25', rank: '-' },
+      { name: '14. MOISÉS (Diáconos)', enrolled: 10, present: 6, visitors: 6, absent: 4, totalPresent: 12, bibles: 17, magazines: 10, offering: 'R$ 46,35', rank: '-' },
+      { name: '15. ABRAÃO (Pastores, Evangelistas e Presbíteros)', enrolled: 33, present: 24, visitors: 5, absent: 9, totalPresent: 29, bibles: 24, magazines: 20, offering: 'R$ 254,85', rank: '1°' },
+      { name: '16. PROFESSORES', enrolled: 43, present: 38, visitors: 0, absent: 5, totalPresent: 38, bibles: 38, magazines: 38, offering: 'R$ 0,00', rank: '-' },
     ];
   };
 
   const handleGenerateReport = async () => {
     if (!selectedDate) return;
-    const date = format(new Date(selectedDate), 'dd/MM/yyyy', { locale: ptBR });
     if (reportType === 'general') {
       const data = await fetchReportData(selectedDate);
       setReportData(data);
@@ -180,62 +192,76 @@ const ReportsTab: React.FC = () => {
     </div>
   );
 
-  const ClassesReport = ({ classData, selectedDate }: { classData: ClassData[]; selectedDate: string }) => (
-    <div style={{ margin: 0, padding: 0 }}>
-      <img src={adCamposLogo} alt="AD Campos Logo" className="report-logo" />
-      <h1>Catedral das Assembleias de Deus em Campos</h1>
-      <h2>Secretaria da Escola Bíblica Dominical - EBD</h2>
-      <p>Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
-      <p>Ano 2025</p>
-      <p>Data: {format(new Date(selectedDate + 'T12:00:00Z'), 'dd/MM/yyyy', { locale: ptBR })}</p>
+  const ClassesReport = ({ classData, selectedDate }: { classData: ClassData[]; selectedDate: string }) => {
+    const totalEnrolled = classData.reduce((sum, cls) => sum + cls.enrolled, 0);
+    const totalPresent = classData.reduce((sum, cls) => sum + cls.present, 0);
+    const totalVisitors = classData.reduce((sum, cls) => sum + cls.visitors, 0);
+    const totalAbsent = classData.reduce((sum, cls) => sum + cls.absent, 0);
+    const totalPresentSum = classData.reduce((sum, cls) => sum + cls.totalPresent, 0);
+    const totalBibles = classData.reduce((sum, cls) => sum + cls.bibles, 0);
+    const totalMagazines = classData.reduce((sum, cls) => sum + cls.magazines, 0);
+    const totalOffering = classData.reduce((sum, cls) => {
+      const value = parseFloat(cls.offering.replace('R$ ', '').replace(',', '.'));
+      return isNaN(value) ? sum : sum + value;
+    }, 0);
 
-      <table className="classes-full-table">
-        <thead>
-          <tr>
-            <th>Nome da Classe</th>
-            <th>Matriculados</th>
-            <th>Presentes</th>
-            <th>Visitantes</th>
-            <th>Ausentes</th>
-            <th>Total Presentes</th>
-            <th>Bíblias</th>
-            <th>Revistas</th>
-            <th>Ofertas</th>
-            <th>Rank</th>
-          </tr>
-        </thead>
-        <tbody>
-          {classData.map((cls, index) => (
-            <tr key={index}>
-              <td>{cls.name}</td>
-              <td>{cls.enrolled}</td>
-              <td>{cls.present}</td>
-              <td>{cls.visitors}</td>
-              <td>{cls.absent}</td>
-              <td>{cls.totalPresent}</td>
-              <td>{cls.bibles}</td>
-              <td>{cls.magazines}</td>
-              <td>{cls.offering}</td>
-              <td>{cls.rank}</td>
+    return (
+      <div style={{ margin: 0, padding: 0 }}>
+        <img src={adCamposLogo} alt="AD Campos Logo" className="report-logo" />
+        <h1>Catedral das Assembleias de Deus em Campos</h1>
+        <h2>Secretaria da Escola Bíblica Dominical - EBD</h2>
+        <p>Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
+        <p>Ano 2025</p>
+        <p>Data: {format(new Date(selectedDate + 'T12:00:00Z'), 'dd/MM/yyyy', { locale: ptBR })}</p>
+
+        <table className="classes-full-table">
+          <thead>
+            <tr>
+              <th>Nome da Classe</th>
+              <th>Matriculados</th>
+              <th>Presentes</th>
+              <th>Visitantes</th>
+              <th>Ausentes</th>
+              <th>Total Presentes</th>
+              <th>Bíblias</th>
+              <th>Revistas</th>
+              <th>Ofertas</th>
+              <th>Rank</th>
             </tr>
-          ))}
-          <tr className="total-row">
-            <td>TOTAL GERAL</td>
-            <td>{classData.reduce((sum) => sum + sum.enrolled, 0)}</td>
-            <td>{classData.reduce((sum) => sum + sum.present, 0)}</td>
-            <td>{classData.reduce((sum) => sum + sum.visitors, 0)}</td>
-            <td>{classData.reduce((sum) => sum + sum.absent, 0)}</td>
-            <td>{classData.reduce((sum) => sum + sum.totalPresent, 0)}</td>
-            <td>{classData.reduce((sum) => sum + sum.bibles, 0)}</td>
-            <td>{classData.reduce((sum) => sum + sum.magazines, 0)}</td>
-            <td>R$ {classData.reduce((sum, cls) => sum + parseFloat(cls.offering.replace('R$ ', '').replace(',', '.')), 0).toFixed(2).replace('.', ',')}</td>
-            <td></td>
-          </tr>
-        </tbody>
-      </table>
-      <p className="footer">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
-    </div>
-  );
+          </thead>
+          <tbody>
+            {classData.map((cls, index) => (
+              <tr key={index}>
+                <td>{cls.name}</td>
+                <td>{cls.enrolled}</td>
+                <td>{cls.present}</td>
+                <td>{cls.visitors}</td>
+                <td>{cls.absent}</td>
+                <td>{cls.totalPresent}</td>
+                <td>{cls.bibles}</td>
+                <td>{cls.magazines}</td>
+                <td>{cls.offering}</td>
+                <td>{cls.rank}</td>
+              </tr>
+            ))}
+            <tr className="total-row">
+              <td>TOTAL GERAL</td>
+              <td>{totalEnrolled}</td>
+              <td>{totalPresent}</td>
+              <td>{totalVisitors}</td>
+              <td>{totalAbsent}</td>
+              <td>{totalPresentSum}</td>
+              <td>{totalBibles}</td>
+              <td>{totalMagazines}</td>
+              <td>R$ {totalOffering.toFixed(2).replace('.', ',')}</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="footer">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
+      </div>
+    );
+  };
 
   const handlePrint = () => {
     const printContent = printableAreaRef.current?.innerHTML;
@@ -314,7 +340,14 @@ const ReportsTab: React.FC = () => {
         <button onClick={handleGenerateReport} className="ml-4 px-4 py-1 bg-blue-500 text-white">Gerar Relatório</button>
         <button onClick={handlePrint} disabled={!reportData && !classData} className="ml-2 px-4 py-1 bg-green-500 text-white">Imprimir PDF</button>
       </div>
-      {reportType === 'general' && ebdObservations && <textarea value={ebdObservations} onChange={(e) => setEbdObservations(e.target.value)} placeholder="Observações" className="w-full p-2 border mb-2" />}
+      {reportType === 'general' && (
+        <textarea
+          value={ebdObservations}
+          onChange={(e) => setEbdObservations(e.target.value)}
+          placeholder="Observações"
+          className="w-full p-2 border mb-2"
+        />
+      )}
 
       {reportData && reportType === 'general' && (
         <div ref={printableAreaRef}>
