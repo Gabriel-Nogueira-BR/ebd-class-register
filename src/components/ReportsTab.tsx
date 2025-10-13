@@ -46,85 +46,95 @@ interface ReportData {
 }
 
 // Componentes do Relatório (definidos fora para melhor performance)
-const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
-  <div className="bg-white text-black px-6 py-4" style={{ width: '193mm', height: '280mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box' }}>
-    <header className="flex items-start justify-between pb-1">
-      <div className="flex items-center gap-3">
-        <img src={adCamposLogo} alt="AD Campos Logo" className="w-[70px] h-[70px]" />
-        <div>
-          <h1 className="text-base font-bold">Catedral das Assembleias de Deus em Campos</h1>
-          <h2 className="text-sm">Secretaria da Escola Bíblica Dominical - EBD</h2>
-          <p className="text-xs text-gray-600">Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
-        </div>
-      </div>
-      <div className="text-right">
-        <p className="text-sm font-bold">Ano</p>
-        <p className="text-3xl font-bold tracking-tighter">2025</p>
-      </div>
-    </header>
-    <div className="text-center"><h3 className="text-lg font-bold">RELATÓRIO DA ESCOLA BÍBLICA DOMINICAL</h3></div>
-    <div className="flex justify-end text-xs mt-1 mb-1"><p><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p></div>
-    
-    <main className="flex-grow" style={{ display: 'flex', flexDirection: 'column' }}>
-      <div className="grid grid-cols-2 gap-x-4 mb-1">
-        <div className="space-y-0.5">
-          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>ALUNOS MATRICULADOS:</span><span className="font-bold">{reportData?.totalEnrolled || 0}</span></div>
-          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>ALUNOS PRESENTES:</span><span className="font-bold">{reportData?.totalPresent || 0}</span></div>
-          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>ALUNOS VISITANTES:</span><span className="font-bold">{reportData?.totalVisitors || 0}</span></div>
-          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>ALUNOS AUSENTES:</span><span className="font-bold">{reportData?.totalAbsent || 0}</span></div>
-        </div>
-        <div className="space-y-0.5">
-          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>TOTAL DE OFERTAS EBD:</span><span className="font-bold">R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}</span></div>
-          <div className="border border-black px-2 py-0.5 text-xs flex justify-between"><span>TOTAL DE REVISTAS EBD, INCLUINDO PROFESSORES:</span><span className="font-bold">{reportData?.totalMagazines || 0}</span></div>
-        </div>
-      </div>
+const GeneralReport = ({
+  reportData,
+  selectedDate,
+  ebdObservations,
+}: {
+  reportData: ReportData | null;
+  selectedDate: string;
+  ebdObservations?: string;
+}) => (
+  <>
+    <img src={adCamposLogo} alt="AD Campos Logo" className="report-logo" />
+    <h1>Catedral das Assembleias de Deus em Campos</h1>
+    <h2>Secretaria da Escola Bíblica Dominical - EBD</h2>
+    <p>Pastor Presidente Paulo Areas de Moraes - Ministério de Madureira</p>
+    <p>Ano 2025</p>
 
-      <div className="border border-black px-2 py-0.5 mb-1 text-xs flex justify-between"><span>TOTAL DE ALUNOS PRESENTES (alunos presentes + alunos visitantes):</span><span className="font-bold">{(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}</span></div>
-      
-      <div className="space-y-0.5 mb-1 text-xs">
-          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Crianças e Juniores):</span><span>{reportData?.magazinesByCategory?.children || 0}</span></div>
-          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Adolescentes):</span><span>{reportData?.magazinesByCategory?.adolescents || 0}</span></div>
-          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Jovens):</span><span>{reportData?.magazinesByCategory?.youth || 0}</span></div>
-          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Novos Convertidos):</span><span>{reportData?.magazinesByCategory?.newConverts || 0}</span></div>
-          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS UTILIZADAS (Adultos):</span><span>{reportData?.magazinesByCategory?.adults || 0}</span></div>
-          <div className="border border-black px-2 py-0.5 flex justify-between"><span>TOTAL DE REVISTAS PROFESSORES EM CLASSE:</span><span>{reportData?.magazinesByCategory?.teachers || 0}</span></div>
-      </div>
+    <h3>RELATÓRIO DA ESCOLA BÍBLICA DOMINICAL</h3>
+    <p className="report-date">
+      Data: {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}
+    </p>
 
-      <div className="border border-black p-2 mb-1 text-xs">
-          <h4 className="font-bold text-center mb-1 text-sm">CLASSIFICAÇÃO DAS OFERTAS</h4>
-          <div className="space-y-1">
-              <div>
-                  <div className="flex justify-between font-bold bg-gray-200 px-2 py-0.5"><span>CLASSES DAS CRIANÇAS:</span><span>VALOR R$</span></div>
-                  {reportData?.topClasses?.children.map((cls) => (<div key={cls.name} className="flex justify-between px-2"><span>{cls.rank} {cls.name}</span><span>R$ {cls.offering.toFixed(2).replace('.', ',')}</span></div>))}
-              </div>
-              <div>
-                  <div className="flex justify-between font-bold bg-gray-200 px-2 py-0.5"><span>CLASSES DOS ADOLESCENTES:</span><span>VALOR R$</span></div>
-                  {reportData?.topClasses?.adolescents.map((cls) => (<div key={cls.name} className="flex justify-between px-2"><span>{cls.rank} {cls.name}</span><span>R$ {cls.offering.toFixed(2).replace('.', ',')}</span></div>))}
-              </div>
-              <div>
-                  <div className="flex justify-between font-bold bg-gray-200 px-2 py-0.5"><span>CLASSES DOS ADULTOS:</span><span>VALOR R$</span></div>
-                  {reportData?.topClasses?.adults.map((cls) => (<div key={cls.name} className="flex justify-between px-2"><span>{cls.rank} {cls.name}</span><span>R$ {cls.offering.toFixed(2).replace('.', ',')}</span></div>))}
-              </div>
-          </div>
+    <div className="stats-section">
+      <div className="stat-line">ALUNOS MATRICULADOS: {reportData?.totalEnrolled || 0}</div>
+      <div className="stat-line">ALUNOS PRESENTES: {reportData?.totalPresent || 0}</div>
+      <div className="stat-line">ALUNOS VISITANTES: {reportData?.totalVisitors || 0}</div>
+      <div className="stat-line">ALUNOS AUSENTES: {reportData?.totalAbsent || 0}</div>
+      <div className="stat-line">
+        TOTAL DE OFERTAS EBD: R$ {reportData?.totalOffering.toFixed(2).replace('.', ',') || '0,00'}
       </div>
-      
-      <div className="flex gap-4 mb-1">
-          <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM DINHEIRO:</span><span className="font-bold">R$ {reportData?.cashTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
-          <div className="border border-black p-1 flex-1 text-xs flex justify-between"><span>TOTAL EM PIX/CARTÃO:</span><span className="font-bold">R$ {reportData?.pixTotal.toFixed(2).replace('.', ',') || '0,00'}</span></div>
+      <div className="stat-line">
+        TOTAL DE REVISTAS EBD, INCLUINDO PROFESSORES: {reportData?.totalMagazines || 0}
       </div>
+      <div className="stat-line">
+        TOTAL DE ALUNOS PRESENTES (alunos presentes + alunos visitantes): {(reportData?.totalPresent || 0) + (reportData?.totalVisitors || 0)}
+      </div>
+      <div className="stat-line">
+        TOTAL DE REVISTAS UTILIZADAS (Crianças e Juniores): {reportData?.magazinesByCategory?.children || 0}
+      </div>
+      <div className="stat-line">
+        TOTAL DE REVISTAS UTILIZADAS (Adolescentes): {reportData?.magazinesByCategory?.adolescents || 0}
+      </div>
+      <div className="stat-line">
+        TOTAL DE REVISTAS UTILIZADAS (Jovens): {reportData?.magazinesByCategory?.youth || 0}
+      </div>
+      <div className="stat-line">
+        TOTAL DE REVISTAS UTILIZADAS (Novos Convertidos): {reportData?.magazinesByCategory?.newConverts || 0}
+      </div>
+      <div className="stat-line">
+        TOTAL DE REVISTAS UTILIZADAS (Adultos): {reportData?.magazinesByCategory?.adults || 0}
+      </div>
+      <div className="stat-line">
+        TOTAL DE REVISTAS PROFESSORES EM CLASSE: {reportData?.magazinesByCategory?.teachers || 0}
+      </div>
+    </div>
 
-      <div className="border border-black p-2 h-14 text-xs">
-        <span className="font-bold">OBSERVAÇÕES:</span>
-        {ebdObservations && (
-          <p className="mt-1 text-[9pt]">{ebdObservations}</p>
-        )}
-      </div>
-      
-      <div className="text-center mt-1" style={{ marginTop: 'auto' }}>
-        <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
-      </div>
-    </main>
-  </div>
+    <h4>CLASSIFICAÇÃO DAS OFERTAS</h4>
+
+    <div className="class-section">
+      <div className="section-header">CLASSES DAS CRIANÇAS: VALOR R$</div>
+      {reportData?.topClasses?.children.map((cls) => (
+        <div key={cls.name} className="class-line">
+          {cls.rank} {cls.name} R$ {cls.offering.toFixed(2).replace('.', ',')}
+        </div>
+      ))}
+
+      <div className="section-header">CLASSES DOS ADOLESCENTES: VALOR R$</div>
+      {reportData?.topClasses?.adolescents.map((cls) => (
+        <div key={cls.name} className="class-line">
+          {cls.rank} {cls.name} R$ {cls.offering.toFixed(2).replace('.', ',')}
+        </div>
+      ))}
+
+      <div className="section-header">CLASSES DOS ADULTOS: VALOR R$</div>
+      {reportData?.topClasses?.adults.map((cls) => (
+        <div key={cls.name} className="class-line">
+          {cls.rank} {cls.name} R$ {cls.offering.toFixed(2).replace('.', ',')}
+        </div>
+      ))}
+    </div>
+
+    <div className="totals-section">
+      <div className="total-line">TOTAL EM DINHEIRO: R$ {reportData?.cashTotal.toFixed(2).replace('.', ',') || '0,00'}</div>
+      <div className="total-line">TOTAL EM PIX/CARTÃO: R$ {reportData?.pixTotal.toFixed(2).replace('.', ',') || '0,00'}</div>
+    </div>
+
+    <p className="observations">OBSERVAÇÕES: {ebdObservations}</p>
+
+    <p className="footer">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
+  </>
 );
 
 const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | null; selectedDate: string }) => {
@@ -322,7 +332,7 @@ export const ReportsTab = () => {
 
 const handlePrint = () => {
   const printContent = printableAreaRef.current?.innerHTML;
-  console.log('Conteúdo para impressão:', printContent); // Debug: verifique no console se tem HTML
+  console.log('Conteúdo para impressão:', printContent); // Debug
   if (!printContent) {
     alert('Erro: Conteúdo não encontrado para impressão.');
     return;
@@ -336,17 +346,17 @@ const handlePrint = () => {
         <head>
           <title>Relatório EBD - Pré-visualização</title>
           <style>
-            /* Estilos para tela (preview na janela) */
+            /* Estilos para tela (preview) */
             body {
               margin: 1cm !important;
               padding: 0 !important;
               font-family: 'Arial', sans-serif;
               font-size: 11pt;
-              line-height: 1.3;
+              line-height: 1.4;
               color: black !important;
               background: white !important;
             }
-            img {
+            .report-logo {
               max-width: 100px;
               height: auto;
               display: block;
@@ -358,8 +368,18 @@ const handlePrint = () => {
               font-size: 12pt;
               color: black !important;
             }
-            p, div {
+            p, .section-header {
               margin: 5px 0;
+              color: black !important;
+            }
+            .stats-section, .class-section, .totals-section {
+              margin-bottom: 10px;
+            }
+            .stat-line, .class-line, .total-line {
+              margin: 3px 0;
+              padding: 2px;
+              font-size: 10pt;
+              white-space: pre-wrap; /* Preserva espaços e quebras */
               color: black !important;
             }
             table {
@@ -374,27 +394,26 @@ const handlePrint = () => {
               text-align: center;
               color: black !important;
             }
-            /* Evita elementos escondidos */
             .no-print, [style*="display: none"] {
               display: none !important;
             }
 
-            /* Estilos para impressão/PDF */
+            /* Estilos para impressão/PDF - Ajustado para matching o primeiro PDF */
             @media print {
               @page {
                 size: A4 portrait;
-                margin: 0.5cm;
+                margin: 0.5cm; /* Mantém sem blanks no topo */
               }
               body {
                 margin: 0 !important;
                 padding: 0 !important;
                 font-family: 'Arial', sans-serif;
                 font-size: 11pt;
-                line-height: 1.2;
+                line-height: 1.3; /* Ligeiro aumento para separar linhas */
                 color: black !important;
                 background: white !important;
               }
-              img {
+              .report-logo {
                 max-width: 100px;
                 height: auto;
                 page-break-inside: avoid;
@@ -404,20 +423,41 @@ const handlePrint = () => {
                 page-break-after: avoid;
                 page-break-inside: avoid;
                 margin-top: 0.2cm;
-                margin-bottom: 0.3cm;
+                margin-bottom: 0.4cm; /* Mais espaço após títulos */
                 font-size: 12pt;
                 color: black !important;
               }
-              p, div {
-                margin: 0.1cm 0;
+              p, .observations, .footer {
+                margin: 0.2cm 0; /* Aumentado para quebras visíveis */
                 page-break-inside: avoid;
                 color: black !important;
+              }
+              .report-date {
+                margin: 0.3cm 0;
+              }
+              .stats-section, .class-section, .totals-section {
+                page-break-inside: avoid;
+                margin-bottom: 0.5cm;
+              }
+              .stat-line, .class-line, .total-line {
+                margin: 0.3cm 0; /* Espaçamento entre stats para evitar colagem */
+                padding: 0.1cm;
+                font-size: 10pt;
+                white-space: pre-wrap !important; /* Força preservação de espaços */
+                page-break-inside: avoid;
+                color: black !important;
+                word-wrap: break-word; /* Evita overflow horizontal */
+              }
+              .section-header {
+                font-weight: bold;
+                margin: 0.4cm 0 0.2cm 0;
               }
               table {
                 width: 100%;
                 border-collapse: collapse;
-                page-break-inside: avoid;
+                page-break-inside: auto; /* Permite quebra na tabela se necessário */
                 font-size: 10pt;
+                margin-top: 0.5cm;
               }
               table th, table td {
                 border: 1px solid black;
@@ -428,8 +468,16 @@ const handlePrint = () => {
               .no-print, [style*="display: none"] {
                 display: none !important;
               }
-              .section-break {
-                page-break-before: always;
+              /* Quebra após header para página 1, stats para 2 */
+              h3:first-of-type {
+                page-break-after: avoid;
+              }
+              .stats-section {
+                page-break-before: auto;
+                page-break-after: always; /* Força quebra após stats, como no PDF 1 */
+              }
+              .class-section {
+                page-break-before: always; /* Classificações na página 3 */
               }
             }
           </style>
@@ -441,15 +489,13 @@ const handlePrint = () => {
     `);
     printWindow.document.close();
 
-    // Delay para renderizar antes de print
     setTimeout(() => {
       printWindow.focus();
       printWindow.print();
-      // Não feche imediatamente para permitir preview
-      // printWindow.close(); // Comente se quiser manter a janela aberta para debug
+      // Comente para debug: printWindow.close();
     }, 500);
   } else {
-    alert('Erro: Não foi possível abrir a janela de impressão. Verifique pop-ups bloqueados.');
+    alert('Erro: Não foi possível abrir a janela de impressão.');
   }
 };
 
