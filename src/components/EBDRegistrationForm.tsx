@@ -57,6 +57,51 @@ export const EBDRegistrationForm = () => {
   const [isSystemLocked, setIsSystemLocked] = useState(true);
   const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
 
+  // Auto-save to localStorage
+  useEffect(() => {
+    if (!selectedClassId) return;
+    
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `ebd-form-${selectedClassId}-${today}`;
+    
+    const formState = {
+      presentStudents,
+      visitors,
+      bibles,
+      magazines,
+      offeringCash,
+      offeringPix,
+      hymn,
+      classNotes,
+      ebdNotes,
+      date: today
+    };
+    
+    localStorage.setItem(storageKey, JSON.stringify(formState));
+  }, [selectedClassId, presentStudents, visitors, bibles, magazines, offeringCash, offeringPix, hymn, classNotes, ebdNotes]);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Clean old localStorage entries
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('ebd-form-')) {
+        const storedData = localStorage.getItem(key);
+        if (storedData) {
+          try {
+            const parsed = JSON.parse(storedData);
+            if (parsed.date !== today) {
+              localStorage.removeItem(key);
+            }
+          } catch (e) {
+            localStorage.removeItem(key);
+          }
+        }
+      }
+    });
+  }, []);
+
   useEffect(() => {
     const checkSystemStatus = async () => {
       try {
@@ -154,9 +199,34 @@ export const EBDRegistrationForm = () => {
         return;
     };
 
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    // Try to load from localStorage first
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `ebd-form-${classId}-${today}`;
+    const savedData = localStorage.getItem(storageKey);
+    
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        if (parsed.date === today) {
+          setPresentStudents(parsed.presentStudents || []);
+          setVisitors(parsed.visitors || 0);
+          setBibles(parsed.bibles || 0);
+          setMagazines(parsed.magazines || 0);
+          setOfferingCash(parsed.offeringCash || 0);
+          setOfferingPix(parsed.offeringPix || 0);
+          setHymn(parsed.hymn || '');
+          setClassNotes(parsed.classNotes || '');
+          setEbdNotes(parsed.ebdNotes || '');
+          toast({ title: "Dados Recuperados", description: "Suas informações foram recuperadas automaticamente." });
+        }
+      } catch (e) {
+        console.error("Error loading saved data:", e);
+      }
+    }
+
+    const todayDate = new Date();
+    const startOfDay = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), 0, 0, 0);
+    const endOfDay = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), 23, 59, 59);
     
     // Ajustar para UTC-3 (Brasília)
     const startDateBrasilia = new Date(startOfDay.getTime() + (3 * 60 * 60 * 1000)).toISOString();
@@ -226,6 +296,11 @@ export const EBDRegistrationForm = () => {
         totalPresent: presentStudents.length, visitors, bibles, magazines, offeringCash, offeringPix, hymn
       });
       toast({ title: `Registro ${editingRegistrationId ? 'Atualizado' : 'Salvo'} com Sucesso!`, description: `Classe: ${selectedClass?.name}` });
+      
+      // Clear localStorage after successful submission
+      const today = new Date().toISOString().split('T')[0];
+      const storageKey = `ebd-form-${selectedClassId}-${today}`;
+      localStorage.removeItem(storageKey);
       
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -303,7 +378,7 @@ export const EBDRegistrationForm = () => {
                 </div>
                 <div>
                   <Label htmlFor="pix-files" className="text-sm font-semibold text-primary">Comprovantes de PIX (opcional)</Label>
-                  <div className="mt-2"><Input ref={fileInputRef} id="pix-files" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,image/*" multiple onChange={handleFileChange} className="border-primary/20 focus:border-primary"/><p className="text-sm text-muted-foreground mt-1">Anexe imagens ou PDFs dos comprovantes</p>{pixFiles.length > 0 && (<div className="mt-2"><p className="text-sm text-primary font-medium">{pixFiles.length} arquivo(s) selecionado(s):</p><ul className="text-sm text-muted-foreground">{pixFiles.map((file, index) => (<li key={index} className="truncate">• {file.name}</li>))}</ul></div>)}</div>
+                  <div className="mt-2"><Input ref={fileInputRef} id="pix-files" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,image/*" multiple onChange={handleFileChange} className="border-primary/20 focus:border-primary"/><p className="text-sm text-muted-foreground mt-1">Você pode anexar múltiplos arquivos (imagens ou PDFs)</p>{pixFiles.length > 0 && (<div className="mt-2"><p className="text-sm text-primary font-medium">{pixFiles.length} arquivo(s) selecionado(s):</p><ul className="text-sm text-muted-foreground">{pixFiles.map((file, index) => (<li key={index} className="truncate">• {file.name}</li>))}</ul></div>)}</div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-primary">Hino Escolhido</Label>
