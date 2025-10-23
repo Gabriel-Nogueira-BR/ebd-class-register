@@ -48,6 +48,7 @@ export const EBDRegistrationForm = () => {
   const [offeringPix, setOfferingPix] = useState<number>(0);
   const [hymn, setHymn] = useState<string>('');
   const [pixFiles, setPixFiles] = useState<File[]>([]);
+  const [existingPixUrls, setExistingPixUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [classNotes, setClassNotes] = useState<string>('');
   const [ebdNotes, setEbdNotes] = useState<string>('');
@@ -56,6 +57,7 @@ export const EBDRegistrationForm = () => {
   const { toast } = useToast();
   const [isSystemLocked, setIsSystemLocked] = useState(true);
   const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   // Auto-save to localStorage
   useEffect(() => {
@@ -78,6 +80,7 @@ export const EBDRegistrationForm = () => {
     };
     
     localStorage.setItem(storageKey, JSON.stringify(formState));
+    setLastSaved(new Date());
   }, [selectedClassId, presentStudents, visitors, bibles, magazines, offeringCash, offeringPix, hymn, classNotes, ebdNotes]);
 
   // Load from localStorage on mount
@@ -186,9 +189,19 @@ export const EBDRegistrationForm = () => {
     if (clearClass) setSelectedClassId('');
     setPresentStudents([]); setVisitors(0); setBibles(0);
     setMagazines(0); setOfferingCash(0); setOfferingPix(0); setHymn('');
-    setPixFiles([]); setFormData(null); setEditingRegistrationId(null);
-    setClassNotes(''); setEbdNotes('');
+    setPixFiles([]); setExistingPixUrls([]); setFormData(null); setEditingRegistrationId(null);
+    setClassNotes(''); setEbdNotes(''); setLastSaved(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const clearDraft = () => {
+    if (!selectedClassId) return;
+    const today = new Date().toISOString().split('T')[0];
+    const storageKey = `ebd-form-${selectedClassId}-${today}`;
+    localStorage.removeItem(storageKey);
+    resetForm(false);
+    setLastSaved(null);
+    toast({ title: "Rascunho Limpo", description: "Os dados do rascunho foram removidos." });
   };
 
   const handleClassSelect = async (classId: string) => {
@@ -256,6 +269,7 @@ export const EBDRegistrationForm = () => {
       setHymn(data.hymn || '');
       setClassNotes(data.class_notes || '');
       setEbdNotes(data.ebd_notes || '');
+      setExistingPixUrls(data.pix_receipt_urls || []);
       setEditingRegistrationId(data.id);
     } catch (err) {
       console.log("Nenhum registro existente para hoje, iniciando um novo.");
@@ -272,8 +286,11 @@ export const EBDRegistrationForm = () => {
     }
     setIsSubmitting(true);
     try {
-      let pixReceiptUrls: string[] = [];
-      if (pixFiles.length > 0) pixReceiptUrls = await uploadFiles();
+      let pixReceiptUrls: string[] = [...existingPixUrls];
+      if (pixFiles.length > 0) {
+        const newUrls = await uploadFiles();
+        pixReceiptUrls = [...pixReceiptUrls, ...newUrls];
+      }
       
       const registrationData = {
         class_id: parseInt(selectedClassId), present_students: presentStudents,
@@ -345,6 +362,25 @@ export const EBDRegistrationForm = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
+                {lastSaved && selectedClassId && (
+                  <div className="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-primary">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Rascunho salvo automaticamente às {lastSaved.toLocaleTimeString('pt-BR')}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearDraft}
+                      className="text-xs text-muted-foreground hover:text-destructive"
+                    >
+                      Limpar Rascunho
+                    </Button>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-primary">Selecione a Classe</Label>
                   <select
@@ -378,7 +414,21 @@ export const EBDRegistrationForm = () => {
                 </div>
                 <div>
                   <Label htmlFor="pix-files" className="text-sm font-semibold text-primary">Comprovantes de PIX (opcional)</Label>
-                  <div className="mt-2"><Input ref={fileInputRef} id="pix-files" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,image/*" multiple onChange={handleFileChange} className="border-primary/20 focus:border-primary"/><p className="text-sm text-muted-foreground mt-1">Você pode anexar múltiplos arquivos (imagens ou PDFs)</p>{pixFiles.length > 0 && (<div className="mt-2"><p className="text-sm text-primary font-medium">{pixFiles.length} arquivo(s) selecionado(s):</p><ul className="text-sm text-muted-foreground">{pixFiles.map((file, index) => (<li key={index} className="truncate">• {file.name}</li>))}</ul></div>)}</div>
+                  <div className="mt-2">
+                    <Input ref={fileInputRef} id="pix-files" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,image/*" multiple onChange={handleFileChange} className="border-primary/20 focus:border-primary"/>
+                    <p className="text-sm text-muted-foreground mt-1">Você pode anexar múltiplos arquivos (imagens ou PDFs)</p>
+                    {existingPixUrls.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-sm text-primary font-medium">{existingPixUrls.length} comprovante(s) já enviado(s) anteriormente</p>
+                      </div>
+                    )}
+                    {pixFiles.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-sm text-primary font-medium">{pixFiles.length} novo(s) arquivo(s) selecionado(s):</p>
+                        <ul className="text-sm text-muted-foreground">{pixFiles.map((file, index) => (<li key={index} className="truncate">• {file.name}</li>))}</ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-primary">Hino Escolhido</Label>
