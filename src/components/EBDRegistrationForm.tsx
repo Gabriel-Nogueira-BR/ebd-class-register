@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Lock } from "lucide-react";
 
 interface Class {
@@ -58,8 +59,9 @@ export const EBDRegistrationForm = () => {
   const [isSystemLocked, setIsSystemLocked] = useState(true);
   const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showClearDialog, setShowClearDialog] = useState(false);
 
-  // Auto-save to localStorage
+  // Auto-save to localStorage with debounce
   useEffect(() => {
     if (!selectedClassId) return;
     
@@ -79,9 +81,28 @@ export const EBDRegistrationForm = () => {
       date: today
     };
     
-    localStorage.setItem(storageKey, JSON.stringify(formState));
-    setLastSaved(new Date());
-  }, [selectedClassId, presentStudents, visitors, bibles, magazines, offeringCash, offeringPix, hymn, classNotes, ebdNotes]);
+    // Debounce the save to avoid too many localStorage writes
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem(storageKey, JSON.stringify(formState));
+      const now = new Date();
+      setLastSaved(now);
+      
+      // Show toast only if there's actual data to save
+      const hasData = presentStudents.length > 0 || visitors > 0 || bibles > 0 || 
+                      magazines > 0 || offeringCash > 0 || offeringPix > 0 || 
+                      hymn.trim() !== '' || classNotes.trim() !== '' || ebdNotes.trim() !== '';
+      
+      if (hasData) {
+        toast({ 
+          title: "Rascunho Salvo", 
+          description: `Dados salvos automaticamente às ${now.toLocaleTimeString('pt-BR')}`,
+          duration: 2000
+        });
+      }
+    }, 1000); // Wait 1 second after last change before saving
+    
+    return () => clearTimeout(timeoutId);
+  }, [selectedClassId, presentStudents, visitors, bibles, magazines, offeringCash, offeringPix, hymn, classNotes, ebdNotes, toast]);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -194,14 +215,18 @@ export const EBDRegistrationForm = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const clearDraft = () => {
+  const confirmClearDraft = () => {
     if (!selectedClassId) return;
     const today = new Date().toISOString().split('T')[0];
     const storageKey = `ebd-form-${selectedClassId}-${today}`;
     localStorage.removeItem(storageKey);
     resetForm(false);
     setLastSaved(null);
-    toast({ title: "Rascunho Limpo", description: "Os dados do rascunho foram removidos." });
+    setShowClearDialog(false);
+    toast({ 
+      title: "Rascunho Limpo", 
+      description: "Os dados do rascunho foram removidos com sucesso." 
+    });
   };
 
   const handleClassSelect = async (classId: string) => {
@@ -312,12 +337,16 @@ export const EBDRegistrationForm = () => {
         registrationDate: new Date().toISOString(), selectedClass: selectedClass?.name || '', presentStudents,
         totalPresent: presentStudents.length, visitors, bibles, magazines, offeringCash, offeringPix, hymn
       });
-      toast({ title: `Registro ${editingRegistrationId ? 'Atualizado' : 'Salvo'} com Sucesso!`, description: `Classe: ${selectedClass?.name}` });
+      toast({ 
+        title: `Registro ${editingRegistrationId ? 'Atualizado' : 'Salvo'} com Sucesso!`, 
+        description: `Classe: ${selectedClass?.name}. Rascunho removido automaticamente.` 
+      });
       
       // Clear localStorage after successful submission
       const today = new Date().toISOString().split('T')[0];
       const storageKey = `ebd-form-${selectedClassId}-${today}`;
       localStorage.removeItem(storageKey);
+      setLastSaved(null);
       
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -370,15 +399,32 @@ export const EBDRegistrationForm = () => {
                       </svg>
                       Rascunho salvo automaticamente às {lastSaved.toLocaleTimeString('pt-BR')}
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearDraft}
-                      className="text-xs text-muted-foreground hover:text-destructive"
-                    >
-                      Limpar Rascunho
-                    </Button>
+                    <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-muted-foreground hover:text-destructive"
+                        >
+                          Limpar Rascunho
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar Limpeza de Rascunho</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja limpar os dados do rascunho? Esta ação não pode ser desfeita e todos os dados não salvos serão perdidos.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={confirmClearDraft} className="bg-destructive hover:bg-destructive/90">
+                            Limpar Rascunho
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 )}
                 <div className="space-y-2">
