@@ -8,10 +8,14 @@ import { AdminDashboard } from "@/components/AdminDashboard";
 import { RegistrationsList } from "@/components/RegistrationsList";
 import { StudentsManagement } from "@/components/StudentsManagement";
 import { ReportsTab } from "@/components/ReportsTab";
+import { RefreshCw } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Admin = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -27,6 +31,14 @@ const Admin = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
+  };
+
+  const handleRefresh = () => {
+    setRefreshKey(prev => prev + 1);
+    toast({
+      title: "Atualizado",
+      description: "Os dados foram atualizados com sucesso.",
+    });
   };
 
   if (isLoading) {
@@ -48,9 +60,14 @@ const Admin = () => {
             <h1 className="text-3xl font-bold text-primary">Área Administrativa - EBD</h1>
             <p className="text-muted-foreground">Gerencie registros, alunos e relatórios</p>
           </div>
-          <Button onClick={handleLogout} variant="outline">
-            Sair
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleRefresh} variant="outline" size="icon">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            <Button onClick={handleLogout} variant="outline">
+              Sair
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
@@ -62,19 +79,19 @@ const Admin = () => {
           </TabsList>
 
           <TabsContent value="dashboard">
-            <AdminDashboard />
+            <AdminDashboard key={`dashboard-${refreshKey}`} />
           </TabsContent>
 
           <TabsContent value="registrations">
-            <RegistrationsList />
+            <RegistrationsList key={`registrations-${refreshKey}`} />
           </TabsContent>
 
           <TabsContent value="students">
-            <StudentsManagement />
+            <StudentsManagement key={`students-${refreshKey}`} />
           </TabsContent>
 
           <TabsContent value="reports">
-            <ReportsTab />
+            <ReportsTab key={`reports-${refreshKey}`} />
           </TabsContent>
         </Tabs>
       </div>
