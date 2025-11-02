@@ -215,13 +215,13 @@ export const AdminDashboard = () => {
         // Processar dados de frequência por domingo do trimestre
         const sundayData: { [key: string]: { date: Date; present: number } } = {};
         registrations.forEach(reg => {
-          const date = new Date(reg.registration_date + 'T00:00:00'); // Garantir formato de data local
+          const dateStr = reg.registration_date.substring(0, 10); // YYYY-MM-DD
+          const date = new Date(dateStr + 'T12:00:00'); // Usar meio-dia para evitar problemas de timezone
           if (date.getDay() === 0) { // Apenas domingos
-            const dateKey = reg.registration_date.substring(0, 10);
-            if (!sundayData[dateKey]) {
-              sundayData[dateKey] = { date, present: 0 };
+            if (!sundayData[dateStr]) {
+              sundayData[dateStr] = { date, present: 0 };
             }
-            sundayData[dateKey].present += reg.total_present || 0;
+            sundayData[dateStr].present += reg.total_present || 0;
           }
         });
 
@@ -242,7 +242,8 @@ export const AdminDashboard = () => {
         const filteredRegistrations = selectedDate && selectedDate !== "all"
           ? registrations.filter(r => r.registration_date.substring(0, 10) === selectedDate)
           : registrations.filter(r => {
-              const date = new Date(r.registration_date + 'T00:00:00');
+              const dateStr = r.registration_date.substring(0, 10);
+              const date = new Date(dateStr + 'T12:00:00');
               return date.getDay() === 0; // Apenas domingos
             });
         
@@ -279,7 +280,8 @@ export const AdminDashboard = () => {
         // Coletar datas disponíveis (domingos únicos)
         const uniqueSundayDates = registrations
           .filter(r => {
-            const date = new Date(r.registration_date + 'T00:00:00');
+            const dateStr = r.registration_date.substring(0, 10);
+            const date = new Date(dateStr + 'T12:00:00');
             return date.getDay() === 0;
           })
           .map(r => r.registration_date.substring(0, 10))
@@ -319,7 +321,8 @@ export const AdminDashboard = () => {
       // Filtrar apenas domingos e ordenar
       const sundayRegistrations = registrations
         .filter(reg => {
-          const date = new Date(reg.registration_date + 'T00:00:00');
+          const dateStr = reg.registration_date.substring(0, 10);
+          const date = new Date(dateStr + 'T12:00:00');
           return date.getDay() === 0;
         })
         .sort((a, b) => new Date(a.registration_date).getTime() - new Date(b.registration_date).getTime());
