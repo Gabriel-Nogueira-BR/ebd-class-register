@@ -8,7 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ComposedChart } from "recharts";
-import { CalendarDays, TrendingUp, Users, DollarSign } from "lucide-react";
+import { CalendarDays, TrendingUp, Users, DollarSign, AlertTriangle, ArrowUpDown } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface DashboardStats {
   totalRegistrations: number;
@@ -39,6 +42,16 @@ interface ClassData {
   percentage: number;
 }
 
+interface AbsentStudent {
+  id: number;
+  name: string;
+  className: string;
+  consecutiveAbsences: number;
+  absenceRate: number;
+  totalSundays: number;
+  presentCount: number;
+}
+
 export const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalRegistrations: 0,
@@ -55,6 +68,13 @@ export const AdminDashboard = () => {
   const [quarterlyData, setQuarterlyData] = useState<QuarterlyData[]>([]);
   const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([]);
   const [classData, setClassData] = useState<ClassData[]>([]);
+  const [absentStudents, setAbsentStudents] = useState<AbsentStudent[]>([]);
+  const [filteredAbsentStudents, setFilteredAbsentStudents] = useState<AbsentStudent[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "consecutiveAbsences" | "absenceRate">("consecutiveAbsences");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,7 +83,8 @@ export const AdminDashboard = () => {
       await Promise.all([
           fetchStats(),
           fetchQuarterlyData(),
-          fetchSettings() // Adicionado para buscar o estado do interruptor
+          fetchSettings(), // Adicionado para buscar o estado do interruptor
+          fetchAbsentStudents()
       ]);
       setIsLoading(false);
     };
@@ -76,8 +97,26 @@ export const AdminDashboard = () => {
   useEffect(() => {
     if (!isLoading) { // Evita buscar dados trimestrais na carga inicial duas vezes
         fetchQuarterlyData();
+        fetchAbsentStudents();
     }
-  }, [selectedQuarter]);
+  }, [selectedQuarter, selectedDate]);
+
+  useEffect(() => {
+    let filtered = absentStudents.filter(student =>
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.className.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    filtered.sort((a, b) => {
+      const multiplier = sortOrder === "asc" ? 1 : -1;
+      if (sortBy === "name") return multiplier * a.name.localeCompare(b.name);
+      if (sortBy === "consecutiveAbsences") return multiplier * (a.consecutiveAbsences - b.consecutiveAbsences);
+      if (sortBy === "absenceRate") return multiplier * (a.absenceRate - b.absenceRate);
+      return 0;
+    });
+
+    setFilteredAbsentStudents(filtered);
+  }, [absentStudents, searchTerm, sortBy, sortOrder]);
 
   const fetchSettings = async () => {
     try {
@@ -197,35 +236,130 @@ export const AdminDashboard = () => {
         setAttendanceData(attendanceByWeek.length > 0 ? attendanceByWeek : [{ dayOfWeek: "Sem dados", attendance: 0 }]);
         
         // Processar dados por classe
-        const classStats: { [key: number]: { enrolled: number; present: number } } = {};
-        if (students) {
-          students.forEach(student => {
-            if (student.class_id) {
-              if (!classStats[student.class_id]) classStats[student.class_id] = { enrolled: 0, present: 0 };
-              classStats[student.class_id].enrolled++;
-            }
-          });
-        }
-        registrations.forEach(reg => {
+        const classStats: { [key: number]: { present: number; count: number } } = {};
+        
+        // Filtrar registros por data se selecionada
+        const filteredRegistrations = selectedDate 
+          ? registrations.filter(r => r.registration_date.substring(0, 10) === selectedDate)
+          : registrations.filter(r => new Date(r.registration_date).getDay() === 0); // Apenas domingos
+        
+        // Contar presentes por classe
+        filteredRegistrations.forEach(reg => {
           if (reg.class_id) {
-            if (!classStats[reg.class_id]) classStats[reg.class_id] = { enrolled: 0, present: 0 };
+            if (!classStats[reg.class_id]) classStats[reg.class_id] = { present: 0, count: 0 };
             classStats[reg.class_id].present += reg.total_present || 0;
+            classStats[reg.class_id].count++;
           }
         });
+        
+        // Calcular média ou total dependendo se uma data está selecionada
         const classArray = classes.map(cls => {
-            const stats = classStats[cls.id];
-            const totalPossibleAttendance = (stats?.enrolled || 0) * (registrations.filter(r => new Date(r.registration_date).getDay() === 0).map(r => r.registration_date.substring(0, 10)).filter((v, i, a) => a.indexOf(v) === i).length);
-            return {
-                className: cls.name.split('(')[0].trim(),
-                enrolled: stats?.enrolled || 0,
-                present: stats?.present || 0,
-                percentage: totalPossibleAttendance > 0 ? Math.round((stats.present / totalPossibleAttendance) * 100) : 0
-            }
-        });
+          const stats = classStats[cls.id];
+          const totalPresent = stats?.present || 0;
+          const count = stats?.count || 1;
+          
+          return {
+            className: cls.name.split('(')[0].trim(),
+            enrolled: 0, // Não usado neste contexto
+            present: selectedDate ? totalPresent : Math.round(totalPresent / count),
+            percentage: 0 // Não usado neste contexto
+          };
+        }).sort((a, b) => b.present - a.present); // Ordenar por presença
+        
         setClassData(classArray);
+        
+        // Coletar datas disponíveis (domingos únicos)
+        const uniqueSundayDates = registrations
+          .filter(r => new Date(r.registration_date).getDay() === 0)
+          .map(r => r.registration_date.substring(0, 10))
+          .filter((v, i, a) => a.indexOf(v) === i)
+          .sort();
+        setAvailableDates(uniqueSundayDates);
       }
     } catch (error) {
       console.error("Error fetching quarterly data:", error);
+    }
+  };
+
+  const fetchAbsentStudents = async () => {
+    try {
+      const { startDate, endDate } = getQuarterDates(selectedQuarter);
+      
+      // Buscar todos os alunos ativos
+      const { data: students } = await supabase
+        .from("students")
+        .select("id, name, class_id")
+        .eq("active", true);
+      
+      // Buscar todas as classes
+      const { data: classes } = await supabase
+        .from("classes")
+        .select("id, name");
+      
+      // Buscar registros de presença do trimestre (apenas domingos)
+      const { data: registrations } = await supabase
+        .from("registrations")
+        .select("registration_date, present_students")
+        .gte("registration_date", startDate.toISOString())
+        .lte("registration_date", endDate.toISOString());
+      
+      if (!students || !classes || !registrations) return;
+      
+      // Filtrar apenas domingos e ordenar
+      const sundayRegistrations = registrations
+        .filter(reg => new Date(reg.registration_date).getDay() === 0)
+        .sort((a, b) => new Date(a.registration_date).getTime() - new Date(b.registration_date).getTime());
+      
+      const totalSundays = sundayRegistrations.length;
+      
+      if (totalSundays === 0) {
+        setAbsentStudents([]);
+        return;
+      }
+      
+      // Criar mapa de classes
+      const classMap = new Map(classes.map(c => [c.id, c.name]));
+      
+      // Analisar cada aluno
+      const absentStudentsList: AbsentStudent[] = [];
+      
+      students.forEach(student => {
+        let presentCount = 0;
+        let maxConsecutiveAbsences = 0;
+        let currentConsecutiveAbsences = 0;
+        
+        sundayRegistrations.forEach(reg => {
+          const presentStudents = reg.present_students || [];
+          const isPresent = presentStudents.includes(student.id.toString());
+          
+          if (isPresent) {
+            presentCount++;
+            currentConsecutiveAbsences = 0;
+          } else {
+            currentConsecutiveAbsences++;
+            maxConsecutiveAbsences = Math.max(maxConsecutiveAbsences, currentConsecutiveAbsences);
+          }
+        });
+        
+        const absenceRate = ((totalSundays - presentCount) / totalSundays) * 100;
+        
+        // Verificar se atende aos critérios: 3+ ausências consecutivas OU taxa de ausência > 50%
+        if (maxConsecutiveAbsences >= 3 || absenceRate > 50) {
+          absentStudentsList.push({
+            id: student.id,
+            name: student.name,
+            className: classMap.get(student.class_id) || "Sem classe",
+            consecutiveAbsences: maxConsecutiveAbsences,
+            absenceRate: Math.round(absenceRate),
+            totalSundays,
+            presentCount
+          });
+        }
+      });
+      
+      setAbsentStudents(absentStudentsList);
+    } catch (error) {
+      console.error("Error fetching absent students:", error);
     }
   };
 
@@ -262,6 +396,15 @@ export const AdminDashboard = () => {
     }
   };
   
+  const toggleSort = (field: "name" | "consecutiveAbsences" | "absenceRate") => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortOrder("desc");
+    }
+  };
+
   const handleToggleRegistrations = async (isChecked: boolean) => {
     try {
       // Primeiro, verifica se o registro existe
@@ -403,16 +546,120 @@ export const AdminDashboard = () => {
                                 </CardContent>
                             </Card>
                         </div>
-                        <ChartContainer config={{}} className="h-80 w-full">
-                            <BarChart data={quarterlyData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="month" />
-                                <YAxis />
-                                <ChartTooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="presence" fill="hsl(var(--primary))" name="Presenças" />
-                                <Bar dataKey="registrations" fill="hsl(var(--secondary))" name="Registros" />
-                            </BarChart>
-                        </ChartContainer>
+                        
+                        <Card className="border-orange-500/20 bg-orange-500/5">
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <AlertTriangle className="h-5 w-5 text-orange-600" />
+                                        <CardTitle>Alunos com Alta Taxa de Ausência</CardTitle>
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                        {filteredAbsentStudents.length} aluno(s) encontrado(s)
+                                    </div>
+                                </div>
+                                <CardDescription>
+                                    Alunos que faltaram 3+ domingos consecutivos ou têm mais de 50% de ausência no trimestre
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-4 mb-4">
+                                    <Input
+                                        placeholder="Buscar por nome ou classe..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="max-w-sm"
+                                    />
+                                </div>
+                                
+                                {filteredAbsentStudents.length > 0 ? (
+                                    <div className="border rounded-lg overflow-hidden">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => toggleSort("name")}
+                                                            className="hover:bg-transparent"
+                                                        >
+                                                            Nome
+                                                            <ArrowUpDown className="ml-2 h-4 w-4" />
+                                                        </Button>
+                                                    </TableHead>
+                                                    <TableHead>Classe</TableHead>
+                                                    <TableHead className="text-center">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => toggleSort("consecutiveAbsences")}
+                                                            className="hover:bg-transparent"
+                                                        >
+                                                            Ausências Consecutivas
+                                                            <ArrowUpDown className="ml-2 h-4 w-4" />
+                                                        </Button>
+                                                    </TableHead>
+                                                    <TableHead className="text-center">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => toggleSort("absenceRate")}
+                                                            className="hover:bg-transparent"
+                                                        >
+                                                            Taxa de Ausência
+                                                            <ArrowUpDown className="ml-2 h-4 w-4" />
+                                                        </Button>
+                                                    </TableHead>
+                                                    <TableHead className="text-center">Presença/Total</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {filteredAbsentStudents.map((student) => (
+                                                    <TableRow key={student.id}>
+                                                        <TableCell className="font-medium">{student.name}</TableCell>
+                                                        <TableCell>{student.className}</TableCell>
+                                                        <TableCell className="text-center">
+                                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                                                                student.consecutiveAbsences >= 5 
+                                                                    ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                                                    : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                                                            }`}>
+                                                                {student.consecutiveAbsences} domingo(s)
+                                                            </span>
+                                                        </TableCell>
+                                                        <TableCell className="text-center">
+                                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${
+                                                                student.absenceRate >= 75 
+                                                                    ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                                                    : student.absenceRate >= 50
+                                                                        ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                                                                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                                            }`}>
+                                                                {student.absenceRate}%
+                                                            </span>
+                                                        </TableCell>
+                                                        <TableCell className="text-center text-muted-foreground">
+                                                            {student.presentCount}/{student.totalSundays}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        <AlertTriangle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                        <p className="font-medium">Nenhum aluno encontrado com alta taxa de ausência</p>
+                                        <p className="text-sm mt-1">
+                                            {searchTerm 
+                                                ? "Tente ajustar sua busca"
+                                                : "Parabéns! Todos os alunos estão com boa frequência"}
+                                        </p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
                     </TabsContent>
                     <TabsContent value="attendance">
                         <ChartContainer config={{}} className="h-80 w-full">
@@ -451,14 +698,45 @@ export const AdminDashboard = () => {
                         </ChartContainer>
                     </TabsContent>
                     <TabsContent value="classes">
-                        <ChartContainer config={{}} className="h-96 w-full">
-                           <BarChart data={classData} layout="vertical">
+                        <div className="mb-4">
+                            <div className="flex items-center gap-4">
+                                <Select value={selectedDate} onValueChange={setSelectedDate}>
+                                    <SelectTrigger className="w-[200px]">
+                                        <SelectValue placeholder="Selecione uma data" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">Média do Trimestre</SelectItem>
+                                        {availableDates.map(date => (
+                                            <SelectItem key={date} value={date}>
+                                                {new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-sm text-muted-foreground">
+                                    {selectedDate 
+                                        ? `Exibindo presentes em ${new Date(selectedDate).toLocaleDateString('pt-BR')}`
+                                        : "Exibindo média de presentes por domingo no trimestre"}
+                                </p>
+                            </div>
+                        </div>
+                        <ChartContainer config={{}} className="h-[600px] w-full">
+                           <BarChart data={classData} layout="vertical" margin={{ left: 20, right: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis type="number" />
-                                <YAxis dataKey="className" type="category" width={350} style={{ fontSize: '11px' }} />
+                                <YAxis 
+                                    dataKey="className" 
+                                    type="category" 
+                                    width={200} 
+                                    style={{ fontSize: '12px' }}
+                                    interval={0}
+                                />
                                 <ChartTooltip content={<ChartTooltipContent />} />
-                                <Bar dataKey="present" fill="hsl(var(--primary))" name="Presentes" stackId="a" />
-                                <Bar dataKey="enrolled" fill="hsl(var(--muted))" name="Matriculados" stackId="a" />
+                                <Bar 
+                                    dataKey="present" 
+                                    fill="hsl(var(--primary))" 
+                                    name={selectedDate ? "Presentes" : "Média de Presentes"} 
+                                />
                            </BarChart>
                         </ChartContainer>
                     </TabsContent>
