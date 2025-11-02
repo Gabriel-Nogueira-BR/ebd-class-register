@@ -73,7 +73,7 @@ export const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "consecutiveAbsences" | "absenceRate">("consecutiveAbsences");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("all");
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -239,7 +239,7 @@ export const AdminDashboard = () => {
         const classStats: { [key: number]: { present: number; count: number } } = {};
         
         // Filtrar registros por data se selecionada
-        const filteredRegistrations = selectedDate 
+        const filteredRegistrations = selectedDate && selectedDate !== "all"
           ? registrations.filter(r => r.registration_date.substring(0, 10) === selectedDate)
           : registrations.filter(r => new Date(r.registration_date).getDay() === 0); // Apenas domingos
         
@@ -261,7 +261,7 @@ export const AdminDashboard = () => {
           return {
             className: cls.name.split('(')[0].trim(),
             enrolled: 0, // Não usado neste contexto
-            present: selectedDate ? totalPresent : Math.round(totalPresent / count),
+            present: selectedDate && selectedDate !== "all" ? totalPresent : Math.round(totalPresent / count),
             percentage: 0 // Não usado neste contexto
           };
         }).sort((a, b) => b.present - a.present); // Ordenar por presença
@@ -705,7 +705,7 @@ export const AdminDashboard = () => {
                                         <SelectValue placeholder="Selecione uma data" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="">Média do Trimestre</SelectItem>
+                                        <SelectItem value="all">Média do Trimestre</SelectItem>
                                         {availableDates.map(date => (
                                             <SelectItem key={date} value={date}>
                                                 {new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
@@ -714,7 +714,7 @@ export const AdminDashboard = () => {
                                     </SelectContent>
                                 </Select>
                                 <p className="text-sm text-muted-foreground">
-                                    {selectedDate 
+                                    {selectedDate && selectedDate !== "all"
                                         ? `Exibindo presentes em ${new Date(selectedDate).toLocaleDateString('pt-BR')}`
                                         : "Exibindo média de presentes por domingo no trimestre"}
                                 </p>
@@ -735,7 +735,7 @@ export const AdminDashboard = () => {
                                 <Bar 
                                     dataKey="present" 
                                     fill="hsl(var(--primary))" 
-                                    name={selectedDate ? "Presentes" : "Média de Presentes"} 
+                                    name={selectedDate && selectedDate !== "all" ? "Presentes" : "Média de Presentes"} 
                                 />
                            </BarChart>
                         </ChartContainer>
