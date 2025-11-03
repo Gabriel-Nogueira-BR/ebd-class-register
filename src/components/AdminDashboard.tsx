@@ -160,12 +160,7 @@ export const AdminDashboard = () => {
     return { startDate, endDate };
   };
 
-  // Função auxiliar para verificar se uma data YYYY-MM-DD é domingo
-  const isSunday = (dateStr: string): boolean => {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    return date.getDay() === 0;
-  };
+  // Removido - vamos usar diretamente as datas dos registros
 
   const fetchQuarterlyData = async () => {
     try {
@@ -221,25 +216,25 @@ export const AdminDashboard = () => {
         setQuarterlyData(dataToDisplay as any);
         
         // Processar dados de frequência por domingo do trimestre
-        const sundayData: { [key: string]: { date: Date; present: number } } = {};
+        const sundayData: { [key: string]: { dateStr: string; present: number } } = {};
         registrations.forEach(reg => {
           const dateStr = reg.registration_date.substring(0, 10); // YYYY-MM-DD
-          if (isSunday(dateStr)) { // Apenas domingos
-            if (!sundayData[dateStr]) {
-              const [year, month, day] = dateStr.split('-').map(Number);
-              sundayData[dateStr] = { date: new Date(year, month - 1, day), present: 0 };
-            }
-            sundayData[dateStr].present += reg.total_present || 0;
+          if (!sundayData[dateStr]) {
+            sundayData[dateStr] = { dateStr, present: 0 };
           }
+          sundayData[dateStr].present += reg.total_present || 0;
         });
 
         const totalEnrolled = students?.length || 1;
         const attendanceByWeek = Object.values(sundayData)
-          .sort((a, b) => a.date.getTime() - b.date.getTime())
-          .map((item) => ({
-            dayOfWeek: item.date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-            attendance: Math.round((item.present / totalEnrolled) * 100)
-          }));
+          .sort((a, b) => a.dateStr.localeCompare(b.dateStr))
+          .map((item) => {
+            const [year, month, day] = item.dateStr.split('-');
+            return {
+              dayOfWeek: `${day}/${month}`,
+              attendance: Math.round((item.present / totalEnrolled) * 100)
+            };
+          });
         
         setAttendanceData(attendanceByWeek.length > 0 ? attendanceByWeek : [{ dayOfWeek: "Sem dados", attendance: 0 }]);
         
@@ -249,10 +244,7 @@ export const AdminDashboard = () => {
         // Filtrar registros por data se selecionada
         const filteredRegistrations = selectedDate && selectedDate !== "all"
           ? registrations.filter(r => r.registration_date.substring(0, 10) === selectedDate)
-          : registrations.filter(r => {
-              const dateStr = r.registration_date.substring(0, 10);
-              return isSunday(dateStr); // Apenas domingos
-            });
+          : registrations;
         
         // Contar presentes por classe
         filteredRegistrations.forEach(reg => {
@@ -284,12 +276,8 @@ export const AdminDashboard = () => {
         
         setClassData(classArray);
         
-        // Coletar datas disponíveis (domingos únicos)
+        // Coletar datas disponíveis (domingos únicos dos registros)
         const uniqueSundayDates = registrations
-          .filter(r => {
-            const dateStr = r.registration_date.substring(0, 10);
-            return isSunday(dateStr);
-          })
           .map(r => r.registration_date.substring(0, 10))
           .filter((v, i, a) => a.indexOf(v) === i)
           .sort();
@@ -315,24 +303,17 @@ export const AdminDashboard = () => {
         .from("classes")
         .select("id, name");
       
-      // Buscar registros de presença do trimestre (apenas domingos)
+      // Buscar registros de presença do trimestre
       const { data: registrations } = await supabase
         .from("registrations")
         .select("registration_date, present_students")
         .gte("registration_date", startDate.toISOString())
-        .lte("registration_date", endDate.toISOString());
+        .lte("registration_date", endDate.toISOString())
+        .order("registration_date", { ascending: true });
       
       if (!students || !classes || !registrations) return;
       
-      // Filtrar apenas domingos e ordenar
-      const sundayRegistrations = registrations
-        .filter(reg => {
-          const dateStr = reg.registration_date.substring(0, 10);
-          return isSunday(dateStr);
-        })
-        .sort((a, b) => new Date(a.registration_date).getTime() - new Date(b.registration_date).getTime());
-      
-      const totalSundays = sundayRegistrations.length;
+      const totalSundays = registrations.length;
       
       if (totalSundays === 0) {
         setAbsentStudents([]);
@@ -350,7 +331,7 @@ export const AdminDashboard = () => {
         let maxConsecutiveAbsences = 0;
         let currentConsecutiveAbsences = 0;
         
-        sundayRegistrations.forEach(reg => {
+        registrations.forEach(reg => {
           const presentStudents = reg.present_students || [];
           const isPresent = presentStudents.includes(student.id.toString());
           
