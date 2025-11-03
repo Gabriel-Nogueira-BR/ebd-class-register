@@ -75,6 +75,7 @@ export const AdminDashboard = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedDate, setSelectedDate] = useState<string>("all");
   const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [absenceQuarter, setAbsenceQuarter] = useState("current");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -99,7 +100,7 @@ export const AdminDashboard = () => {
         fetchQuarterlyData();
         fetchAbsentStudents();
     }
-  }, [selectedQuarter, selectedDate]);
+  }, [selectedQuarter, selectedDate, absenceQuarter]);
 
   useEffect(() => {
     let filtered = absentStudents.filter(student =>
@@ -159,6 +160,13 @@ export const AdminDashboard = () => {
     return { startDate, endDate };
   };
 
+  // Função auxiliar para verificar se uma data YYYY-MM-DD é domingo
+  const isSunday = (dateStr: string): boolean => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.getDay() === 0;
+  };
+
   const fetchQuarterlyData = async () => {
     try {
       const { startDate, endDate } = getQuarterDates(selectedQuarter);
@@ -216,10 +224,10 @@ export const AdminDashboard = () => {
         const sundayData: { [key: string]: { date: Date; present: number } } = {};
         registrations.forEach(reg => {
           const dateStr = reg.registration_date.substring(0, 10); // YYYY-MM-DD
-          const date = new Date(dateStr + 'T12:00:00'); // Usar meio-dia para evitar problemas de timezone
-          if (date.getDay() === 0) { // Apenas domingos
+          if (isSunday(dateStr)) { // Apenas domingos
             if (!sundayData[dateStr]) {
-              sundayData[dateStr] = { date, present: 0 };
+              const [year, month, day] = dateStr.split('-').map(Number);
+              sundayData[dateStr] = { date: new Date(year, month - 1, day), present: 0 };
             }
             sundayData[dateStr].present += reg.total_present || 0;
           }
@@ -243,8 +251,7 @@ export const AdminDashboard = () => {
           ? registrations.filter(r => r.registration_date.substring(0, 10) === selectedDate)
           : registrations.filter(r => {
               const dateStr = r.registration_date.substring(0, 10);
-              const date = new Date(dateStr + 'T12:00:00');
-              return date.getDay() === 0; // Apenas domingos
+              return isSunday(dateStr); // Apenas domingos
             });
         
         // Contar presentes por classe
@@ -281,8 +288,7 @@ export const AdminDashboard = () => {
         const uniqueSundayDates = registrations
           .filter(r => {
             const dateStr = r.registration_date.substring(0, 10);
-            const date = new Date(dateStr + 'T12:00:00');
-            return date.getDay() === 0;
+            return isSunday(dateStr);
           })
           .map(r => r.registration_date.substring(0, 10))
           .filter((v, i, a) => a.indexOf(v) === i)
@@ -296,7 +302,7 @@ export const AdminDashboard = () => {
 
   const fetchAbsentStudents = async () => {
     try {
-      const { startDate, endDate } = getQuarterDates(selectedQuarter);
+      const { startDate, endDate } = getQuarterDates(absenceQuarter);
       
       // Buscar todos os alunos ativos
       const { data: students } = await supabase
@@ -322,8 +328,7 @@ export const AdminDashboard = () => {
       const sundayRegistrations = registrations
         .filter(reg => {
           const dateStr = reg.registration_date.substring(0, 10);
-          const date = new Date(dateStr + 'T12:00:00');
-          return date.getDay() === 0;
+          return isSunday(dateStr);
         })
         .sort((a, b) => new Date(a.registration_date).getTime() - new Date(b.registration_date).getTime());
       
@@ -571,12 +576,19 @@ export const AdminDashboard = () => {
                                         <AlertTriangle className="h-5 w-5 text-orange-600" />
                                         <CardTitle>Alunos com Alta Taxa de Ausência</CardTitle>
                                     </div>
-                                    <div className="text-sm text-muted-foreground">
-                                        {filteredAbsentStudents.length} aluno(s) encontrado(s)
-                                    </div>
+                                    <Select value={absenceQuarter} onValueChange={setAbsenceQuarter}>
+                                        <SelectTrigger className="w-40"><SelectValue placeholder="Trimestre" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="current">Trimestre Atual</SelectItem>
+                                            <SelectItem value="Q1">1º Trimestre</SelectItem>
+                                            <SelectItem value="Q2">2º Trimestre</SelectItem>
+                                            <SelectItem value="Q3">3º Trimestre</SelectItem>
+                                            <SelectItem value="Q4">4º Trimestre</SelectItem>
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                                 <CardDescription>
-                                    Alunos que faltaram 3+ domingos consecutivos ou têm mais de 50% de ausência no trimestre
+                                    Alunos que faltaram 3+ domingos consecutivos ou têm mais de 50% de ausência no trimestre selecionado
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
