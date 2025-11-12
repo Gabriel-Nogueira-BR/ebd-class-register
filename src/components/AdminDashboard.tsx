@@ -306,19 +306,12 @@ export const AdminDashboard = () => {
       // Buscar registros de presença do trimestre
       const { data: registrations } = await supabase
         .from("registrations")
-        .select("registration_date, present_students")
+        .select("registration_date, present_students, class_id")
         .gte("registration_date", startDate.toISOString())
         .lte("registration_date", endDate.toISOString())
         .order("registration_date", { ascending: true });
       
       if (!students || !classes || !registrations) return;
-      
-      const totalSundays = registrations.length;
-      
-      if (totalSundays === 0) {
-        setAbsentStudents([]);
-        return;
-      }
       
       // Criar mapa de classes
       const classMap = new Map(classes.map(c => [c.id, c.name]));
@@ -327,13 +320,19 @@ export const AdminDashboard = () => {
       const absentStudentsList: AbsentStudent[] = [];
       
       students.forEach(student => {
+        // Filtrar registros apenas da classe do aluno
+        const classRegistrations = registrations.filter(reg => reg.class_id === student.class_id);
+        const totalSundays = classRegistrations.length;
+        
+        if (totalSundays === 0) return; // Pular alunos sem registros da classe
+        
         let presentCount = 0;
         let maxConsecutiveAbsences = 0;
         let currentConsecutiveAbsences = 0;
         
-        registrations.forEach(reg => {
+        classRegistrations.forEach(reg => {
           const presentStudents = reg.present_students || [];
-          const isPresent = presentStudents.includes(student.id.toString());
+          const isPresent = presentStudents.includes(student.name);
           
           if (isPresent) {
             presentCount++;
