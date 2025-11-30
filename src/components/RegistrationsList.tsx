@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Eye, Download, Pencil, Trash2 } from "lucide-react";
+import { Eye, Download, Pencil, Trash2, X, Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,6 +45,9 @@ export const RegistrationsList = () => {
     offering_pix: 0,
     hymn: ""
   });
+  const [editExistingUrls, setEditExistingUrls] = useState<string[]>([]);
+  const [editNewFiles, setEditNewFiles] = useState<File[]>([]);
+  const [editFilesToDelete, setEditFilesToDelete] = useState<string[]>([]);
   const [filterDate, setFilterDate] = useState("");
   const [filterClass, setFilterClass] = useState("");
   const [classes, setClasses] = useState<Array<{ id: number; name: string }>>([]);
@@ -200,16 +203,91 @@ export const RegistrationsList = () => {
       offering_pix: registration.offering_pix || 0,
       hymn: registration.hymn || ""
     });
+    setEditExistingUrls(registration.pix_receipt_urls || []);
+    setEditNewFiles([]);
+    setEditFilesToDelete([]);
     setEditDialogOpen(true);
+  };
+  
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setEditNewFiles(prev => [...prev, ...files]);
+  };
+  
+  const removeEditNewFile = (index: number) => {
+    setEditNewFiles(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const removeEditExistingFile = (url: string) => {
+    setEditExistingUrls(prev => prev.filter(u => u !== url));
+    setEditFilesToDelete(prev => [...prev, url]);
+  };
+  
+  const viewEditReceipt = async (url: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("pix-receipts")
+        .createSignedUrl(url, 3600);
+      
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank');
+    } catch (error) {
+      console.error("Error viewing receipt:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível visualizar o comprovante.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSaveEdit = async () => {
     if (!selectedRegistration) return;
 
     try {
+      // Delete files from storage if requested
+      if (editFilesToDelete.length > 0) {
+        const { error: deleteError } = await supabase.storage
+          .from("pix-receipts")
+          .remove(editFilesToDelete);
+        
+        if (deleteError) {
+          console.error("Error deleting files:", deleteError);
+        }
+      }
+      
+      // Upload new files
+      let newUploadedUrls: string[] = [];
+      for (const file of editNewFiles) {
+        try {
+          const timestamp = Date.now();
+          const sanitizedName = file.name
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9.-]/g, '_')
+            .replace(/_{2,}/g, '_')
+            .replace(/^_|_$/g, '');
+          const fileName = `${timestamp}-${sanitizedName}`;
+          const { data, error } = await supabase.storage
+            .from("pix-receipts")
+            .upload(fileName, file);
+          if (error) throw error;
+          newUploadedUrls.push(data.path);
+        } catch (error) {
+          console.error("Error uploading file:", error);
+          throw error;
+        }
+      }
+      
+      // Combine existing URLs with new uploads
+      const finalUrls = [...editExistingUrls, ...newUploadedUrls];
+      
       const { error } = await supabase
         .from("registrations")
-        .update(editFormData)
+        .update({
+          ...editFormData,
+          pix_receipt_urls: finalUrls
+        })
         .eq("id", selectedRegistration.id);
 
       if (error) throw error;
@@ -620,6 +698,74 @@ export const RegistrationsList = () => {
                 onChange={(e) => setEditFormData(prev => ({ ...prev, hymn: e.target.value }))}
                 placeholder="Ex: 15 - Harpa Cristã"
               />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Comprovantes PIX</Label>
+              <div className="space-y-3">
+                <Input
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp,image/*"
+                  multiple
+                  onChange={handleEditFileChange}
+                  className="cursor-pointer"
+                />
+                
+                {editExistingUrls.length > 0 && (
+                  <div className="p-3 bg-muted rounded-lg space-y-2">
+                    <p className="text-sm font-medium">Comprovantes existentes ({editExistingUrls.length}):</p>
+                    <ul className="space-y-2">
+                      {editExistingUrls.map((url, index) => (
+                        <li key={index} className="flex items-center justify-between gap-2 text-sm bg-background p-2 rounded border">
+                          <span className="truncate flex-1">Comprovante {index + 1}</span>
+                          <div className="flex gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => viewEditReceipt(url)}
+                              className="h-6 w-6 p-0"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeEditExistingFile(url)}
+                              className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {editNewFiles.length > 0 && (
+                  <div className="p-3 bg-muted rounded-lg space-y-2">
+                    <p className="text-sm font-medium">Novos arquivos ({editNewFiles.length}):</p>
+                    <ul className="space-y-2">
+                      {editNewFiles.map((file, index) => (
+                        <li key={index} className="flex items-center justify-between gap-2 text-sm bg-background p-2 rounded border">
+                          <span className="truncate flex-1">{file.name}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeEditNewFile(index)}
+                            className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="flex gap-2 justify-end">
