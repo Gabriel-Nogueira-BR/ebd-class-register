@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Lock, X } from "lucide-react";
+import { Lock, X, Eye, Trash2 } from "lucide-react";
 
 interface Class {
   id: number;
@@ -64,6 +64,7 @@ export const EBDRegistrationForm = () => {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [offeringCashDisplay, setOfferingCashDisplay] = useState<string>('');
   const [offeringPixDisplay, setOfferingPixDisplay] = useState<string>('');
+  const [filesToDelete, setFilesToDelete] = useState<string[]>([]);
 
   // Auto-save to localStorage with debounce
   useEffect(() => {
@@ -195,6 +196,29 @@ export const EBDRegistrationForm = () => {
     setPixFiles(prev => prev.filter((_, i) => i !== index));
   };
   
+  const removeExistingFile = (url: string) => {
+    setExistingPixUrls(prev => prev.filter(u => u !== url));
+    setFilesToDelete(prev => [...prev, url]);
+  };
+  
+  const viewReceipt = async (url: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from("pix-receipts")
+        .createSignedUrl(url, 3600);
+      
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank');
+    } catch (error) {
+      console.error("Error viewing receipt:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível visualizar o comprovante.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   const formatCurrencyInput = (value: string): string => {
     const numbers = value.replace(/\D/g, '');
     if (!numbers) return '';
@@ -246,6 +270,7 @@ export const EBDRegistrationForm = () => {
     setPixFiles([]); setExistingPixUrls([]); setFormData(null); setEditingRegistrationId(null);
     setClassNotes(''); setEbdNotes(''); setLastSaved(null);
     setOfferingCashDisplay(''); setOfferingPixDisplay('');
+    setFilesToDelete([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -349,6 +374,17 @@ export const EBDRegistrationForm = () => {
     }
     setIsSubmitting(true);
     try {
+      // Delete files from storage if requested
+      if (filesToDelete.length > 0) {
+        const { error: deleteError } = await supabase.storage
+          .from("pix-receipts")
+          .remove(filesToDelete);
+        
+        if (deleteError) {
+          console.error("Error deleting files:", deleteError);
+        }
+      }
+      
       let pixReceiptUrls: string[] = [...existingPixUrls];
       if (pixFiles.length > 0) {
         const newUrls = await uploadFiles();
@@ -530,8 +566,37 @@ export const EBDRegistrationForm = () => {
                     <p className="text-sm text-muted-foreground">Você pode adicionar arquivos um por um (imagens ou PDFs)</p>
                     
                     {existingPixUrls.length > 0 && (
-                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                        <p className="text-sm text-primary font-medium mb-2">{existingPixUrls.length} comprovante(s) já enviado(s) anteriormente</p>
+                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 space-y-2">
+                        <p className="text-sm text-primary font-medium">Comprovantes já enviados ({existingPixUrls.length}):</p>
+                        <ul className="space-y-2">
+                          {existingPixUrls.map((url, index) => (
+                            <li key={index} className="flex items-center justify-between gap-2 text-sm bg-background p-2 rounded border border-primary/10">
+                              <span className="truncate flex-1">Comprovante {index + 1}</span>
+                              <div className="flex gap-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => viewReceipt(url)}
+                                  className="h-6 w-6 p-0 hover:bg-primary/10"
+                                  title="Visualizar"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeExistingFile(url)}
+                                  className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                     
