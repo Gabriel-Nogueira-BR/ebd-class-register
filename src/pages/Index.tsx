@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, UserCog, Music4 } from "lucide-react"; // <-- 1. IMPORTAR O ÍCONE
+import { FileText, UserCog, Music4 } from "lucide-react";
+import { TodayStatusDialog } from "@/components/TodayStatusDialog";
 
 const Index = () => {
   return (
@@ -11,7 +12,7 @@ const Index = () => {
           <h1 className="text-4xl font-bold text-primary">Sistema de Gestão da EBD</h1>
           <p className="text-muted-foreground mt-2">Selecione uma das opções abaixo para continuar</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><FileText /> Formulário</CardTitle>
@@ -48,6 +49,8 @@ const Index = () => {
               </Link>
             </CardContent>
           </Card>
+
+          <TodayStatusDialog />
         </div>
       </div>
     </div>

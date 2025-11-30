@@ -52,6 +52,26 @@ export const RegistrationsList = () => {
   useEffect(() => {
     fetchRegistrations();
     fetchClasses();
+    
+    // Setup Realtime subscription
+    const channel = supabase
+      .channel('registrations-list-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'registrations'
+        },
+        () => {
+          fetchRegistrations();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
