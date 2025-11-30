@@ -91,8 +91,26 @@ export const AdminDashboard = () => {
     };
     loadInitialData();
     
-    const interval = setInterval(fetchStats, 60000);
-    return () => clearInterval(interval);
+    // Setup Realtime subscription
+    const channel = supabase
+      .channel('registrations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'registrations'
+        },
+        () => {
+          fetchStats();
+          fetchQuarterlyData();
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
   
   useEffect(() => {

@@ -11,7 +11,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Lock } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Lock, X } from "lucide-react";
 
 interface Class {
   id: number;
@@ -60,6 +61,9 @@ export const EBDRegistrationForm = () => {
   const [editingRegistrationId, setEditingRegistrationId] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [offeringCashDisplay, setOfferingCashDisplay] = useState<string>('');
+  const [offeringPixDisplay, setOfferingPixDisplay] = useState<string>('');
 
   // Auto-save to localStorage with debounce
   useEffect(() => {
@@ -183,7 +187,36 @@ export const EBDRegistrationForm = () => {
   };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setPixFiles(files);
+    setPixFiles(prev => [...prev, ...files]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+  
+  const removeFile = (index: number) => {
+    setPixFiles(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const formatCurrencyInput = (value: string): string => {
+    const numbers = value.replace(/\D/g, '');
+    if (!numbers) return '';
+    const cents = parseInt(numbers);
+    return (cents / 100).toFixed(2).replace('.', ',');
+  };
+  
+  const parseCurrencyToFloat = (value: string): number => {
+    if (!value) return 0;
+    return parseFloat(value.replace(',', '.'));
+  };
+  
+  const handleOfferingCashChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCurrencyInput(e.target.value);
+    setOfferingCashDisplay(formatted);
+    setOfferingCash(parseCurrencyToFloat(formatted));
+  };
+  
+  const handleOfferingPixChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCurrencyInput(e.target.value);
+    setOfferingPixDisplay(formatted);
+    setOfferingPix(parseCurrencyToFloat(formatted));
   };
   const uploadFiles = async (): Promise<string[]> => {
     const uploadedUrls: string[] = [];
@@ -212,6 +245,7 @@ export const EBDRegistrationForm = () => {
     setMagazines(0); setOfferingCash(0); setOfferingPix(0); setHymn('');
     setPixFiles([]); setExistingPixUrls([]); setFormData(null); setEditingRegistrationId(null);
     setClassNotes(''); setEbdNotes(''); setLastSaved(null);
+    setOfferingCashDisplay(''); setOfferingPixDisplay('');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -289,8 +323,12 @@ export const EBDRegistrationForm = () => {
       setVisitors(data.visitors || 0);
       setBibles(data.bibles || 0);
       setMagazines(data.magazines || 0);
-      setOfferingCash(data.offering_cash || 0);
-      setOfferingPix(data.offering_pix || 0);
+      const cashValue = data.offering_cash || 0;
+      const pixValue = data.offering_pix || 0;
+      setOfferingCash(cashValue);
+      setOfferingPix(pixValue);
+      setOfferingCashDisplay(cashValue.toFixed(2).replace('.', ','));
+      setOfferingPixDisplay(pixValue.toFixed(2).replace('.', ','));
       setHymn(data.hymn || '');
       setClassNotes(data.class_notes || '');
       setEbdNotes(data.ebd_notes || '');
@@ -337,16 +375,15 @@ export const EBDRegistrationForm = () => {
         registrationDate: new Date().toISOString(), selectedClass: selectedClass?.name || '', presentStudents,
         totalPresent: presentStudents.length, visitors, bibles, magazines, offeringCash, offeringPix, hymn
       });
-      toast({ 
-        title: `Registro ${editingRegistrationId ? 'Atualizado' : 'Salvo'} com Sucesso!`, 
-        description: `Classe: ${selectedClass?.name}. Rascunho removido automaticamente.` 
-      });
       
       // Clear localStorage after successful submission
       const today = new Date().toISOString().split('T')[0];
       const storageKey = `ebd-form-${selectedClassId}-${today}`;
       localStorage.removeItem(storageKey);
       setLastSaved(null);
+      
+      // Show success dialog
+      setShowSuccessDialog(true);
       
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -455,23 +492,68 @@ export const EBDRegistrationForm = () => {
                   <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Revistas</Label><Input type="number" value={magazines || ""} onChange={(e) => setMagazines(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Oferta (Dinheiro)</Label><Input type="number" value={offeringCash || ""} onChange={(e) => setOfferingCash(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary"/></div>
-                  <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Oferta (PIX/Cartão)</Label><Input type="number" value={offeringPix || ""} onChange={(e) => setOfferingPix(parseFloat(e.target.value) || 0)} placeholder="0.00" step="0.01" min="0" className="border-primary/20 focus:border-primary"/></div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-primary">Oferta (Dinheiro)</Label>
+                    <Input 
+                      type="text" 
+                      inputMode="numeric"
+                      value={offeringCashDisplay} 
+                      onChange={handleOfferingCashChange} 
+                      placeholder="0,00" 
+                      className="border-primary/20 focus:border-primary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-primary">Oferta (PIX/Cartão)</Label>
+                    <Input 
+                      type="text" 
+                      inputMode="numeric"
+                      value={offeringPixDisplay} 
+                      onChange={handleOfferingPixChange} 
+                      placeholder="0,00" 
+                      className="border-primary/20 focus:border-primary"
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="pix-files" className="text-sm font-semibold text-primary">Comprovantes de PIX (opcional)</Label>
-                  <div className="mt-2">
-                    <Input ref={fileInputRef} id="pix-files" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,image/*" multiple onChange={handleFileChange} className="border-primary/20 focus:border-primary"/>
-                    <p className="text-sm text-muted-foreground mt-1">Você pode anexar múltiplos arquivos (imagens ou PDFs)</p>
+                  <div className="mt-2 space-y-3">
+                    <Input 
+                      ref={fileInputRef} 
+                      id="pix-files" 
+                      type="file" 
+                      accept=".pdf,.png,.jpg,.jpeg,.webp,image/*" 
+                      multiple 
+                      onChange={handleFileChange} 
+                      className="border-primary/20 focus:border-primary"
+                    />
+                    <p className="text-sm text-muted-foreground">Você pode adicionar arquivos um por um (imagens ou PDFs)</p>
+                    
                     {existingPixUrls.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-sm text-primary font-medium">{existingPixUrls.length} comprovante(s) já enviado(s) anteriormente</p>
+                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                        <p className="text-sm text-primary font-medium mb-2">{existingPixUrls.length} comprovante(s) já enviado(s) anteriormente</p>
                       </div>
                     )}
+                    
                     {pixFiles.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-sm text-primary font-medium">{pixFiles.length} novo(s) arquivo(s) selecionado(s):</p>
-                        <ul className="text-sm text-muted-foreground">{pixFiles.map((file, index) => (<li key={index} className="truncate">• {file.name}</li>))}</ul>
+                      <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                        <p className="text-sm text-primary font-medium mb-2">Arquivos anexados ({pixFiles.length}):</p>
+                        <ul className="space-y-2">
+                          {pixFiles.map((file, index) => (
+                            <li key={index} className="flex items-center justify-between gap-2 text-sm bg-background p-2 rounded border border-primary/10">
+                              <span className="truncate flex-1">{file.name}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeFile(index)}
+                                className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>
@@ -496,19 +578,44 @@ export const EBDRegistrationForm = () => {
             )}
           </CardContent>
         </Card>
-        {formData && (
-          <Card className="mt-6 shadow-xl border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="text-green-800 flex items-center gap-2">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="text-green-600 flex items-center gap-2">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
                 Registro Salvo com Sucesso!
-              </CardTitle>
-              <CardDescription className="text-green-600">
-                Os dados da aula para a classe "{formData.selectedClass}" foram registrados no sistema.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        )}
+              </DialogTitle>
+              <DialogDescription className="space-y-4">
+                {formData && (
+                  <>
+                    <p>Os dados da aula para a classe <strong>"{formData.selectedClass}"</strong> foram {editingRegistrationId ? 'atualizados' : 'registrados'} no sistema.</p>
+                    <div className="text-sm space-y-1">
+                      <p>✓ Alunos presentes: {formData.totalPresent}</p>
+                      <p>✓ Visitantes: {formData.visitors}</p>
+                      <p>✓ Oferta total: R$ {(formData.offeringCash + formData.offeringPix).toFixed(2)}</p>
+                    </div>
+                  </>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-2 mt-4">
+              <Button onClick={() => setShowSuccessDialog(false)} variant="outline" className="flex-1">
+                Fechar
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowSuccessDialog(false);
+                  resetForm(true);
+                }} 
+                className="flex-1"
+              >
+                Novo Registro
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
