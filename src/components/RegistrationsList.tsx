@@ -377,6 +377,67 @@ export const RegistrationsList = () => {
     }
   };
 
+  const handleDeleteReceipt = async (index: number) => {
+    if (!selectedRegistration) return;
+    
+    if (!confirm("Tem certeza que deseja excluir este comprovante?")) {
+      return;
+    }
+
+    const pathToDelete = selectedRegistration.pix_receipt_urls[index];
+    
+    try {
+      // Remove file from storage
+      const { error: storageError } = await supabase.storage
+        .from("pix-receipts")
+        .remove([pathToDelete]);
+
+      if (storageError) {
+        console.error("Error deleting from storage:", storageError);
+      }
+
+      // Update the database
+      const newUrls = selectedRegistration.pix_receipt_urls.filter((_, i) => i !== index);
+      
+      const { error: dbError } = await supabase
+        .from("registrations")
+        .update({ pix_receipt_urls: newUrls })
+        .eq("id", selectedRegistration.id);
+
+      if (dbError) throw dbError;
+
+      // Update local state
+      setSelectedRegistration(prev => prev ? { ...prev, pix_receipt_urls: newUrls } : null);
+      setReceiptUrls(prev => prev.filter((_, i) => i !== index));
+      
+      // Update registrations list
+      setRegistrations(prev => 
+        prev.map(reg => 
+          reg.id === selectedRegistration.id 
+            ? { ...reg, pix_receipt_urls: newUrls } 
+            : reg
+        )
+      );
+
+      toast({
+        title: "Comprovante excluído",
+        description: "O comprovante foi removido com sucesso.",
+      });
+
+      // Close dialog if no more receipts
+      if (newUrls.length === 0) {
+        setReceiptsDialogOpen(false);
+      }
+    } catch (error) {
+      console.error("Error deleting receipt:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível excluir o comprovante.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -563,14 +624,25 @@ export const RegistrationsList = () => {
                     <CardTitle className="text-sm">
                       Comprovante {index + 1}
                     </CardTitle>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownloadReceipt(url, index)}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Baixar
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadReceipt(url, index)}
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Baixar
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteReceipt(index)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
