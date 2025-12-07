@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UserCog, ArrowLeft } from "lucide-react";
 
 const Login = () => {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ const Login = () => {
     try {
       // Utiliza a autenticação real do Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: "ebd.secretaria@adcampos.com", // O e-mail fixo para o administrador
+        email: email,
         password: password,
       });
 
@@ -79,12 +80,24 @@ const Login = () => {
           <CardHeader className="text-center">
             <UserCog className="mx-auto h-12 w-12 text-primary mb-4" />
             <CardTitle className="text-2xl font-bold">Acesso Administrativo</CardTitle>
-            <CardDescription>
-              Digite a senha para aceder ao painel de controlo.
+          <CardDescription>
+              Digite suas credenciais para aceder ao painel de controlo.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoFocus
+                  className="h-12"
+                />
+              </div>
               <div className="space-y-2">
                 <Input
                   id="password"
@@ -93,8 +106,7 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  autoFocus
-                  className="h-12 text-center text-lg tracking-widest"
+                  className="h-12"
                 />
               </div>
               <Button type="submit" disabled={isLoading} className="w-full h-12 text-lg">
