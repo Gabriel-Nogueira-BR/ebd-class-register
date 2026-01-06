@@ -46,7 +46,10 @@ interface ReportData {
 }
 
 // Componentes do Relatório (definidos fora para melhor performance)
-const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => (
+const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => {
+  const reportYear = selectedDate ? new Date(selectedDate + 'T12:00:00Z').getFullYear() : new Date().getFullYear();
+  
+  return (
   <div className="bg-white text-black px-6 py-4" style={{ width: '193mm', height: '280mm', fontFamily: 'Arial, sans-serif', display: 'flex', flexDirection: 'column', fontSize: '13pt', boxSizing: 'border-box' }}>
     <header className="flex items-start justify-between pb-1">
       <div className="flex items-center gap-3">
@@ -59,7 +62,7 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
       </div>
       <div className="text-right">
         <p className="text-sm font-bold">Ano</p>
-        <p className="text-3xl font-bold tracking-tighter">2025</p>
+        <p className="text-3xl font-bold tracking-tighter">{reportYear}</p>
       </div>
     </header>
     <div className="text-center"><h3 className="text-lg font-bold">RELATÓRIO DA ESCOLA BÍBLICA DOMINICAL</h3></div>
@@ -121,13 +124,15 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
       </div>
       
       <div className="text-center mt-1" style={{ marginTop: 'auto' }}>
-        <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
+        <p className="font-bold text-xs">{reportYear} ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
     </main>
   </div>
-);
+);};
 
 const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | null; selectedDate: string }) => {
+  const reportYear = selectedDate ? new Date(selectedDate + 'T12:00:00Z').getFullYear() : new Date().getFullYear();
+  
   // Separar classes por faixa etária e ordenar por nome
   const childrenClasses = reportData?.classDetails?.filter(c => 
     c.name.includes("SOLDADOS") || c.name.includes("OVELHINHAS")
@@ -171,7 +176,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
           </div>
         </div>
         <div className="text-right">
-          <p className="text-xs font-bold">Ano 2025</p>
+          <p className="text-xs font-bold">Ano {reportYear}</p>
           <p className="text-[10px]"><strong>Data:</strong> {selectedDate ? new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('pt-BR') : ''}</p>
         </div>
       </header>
@@ -200,7 +205,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
         </div>
       </div>
       <div className="text-center mt-1" style={{ marginTop: 'auto' }}>
-        <p className="font-bold text-xs">2025 ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
+        <p className="font-bold text-xs">{reportYear} ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
       </div>
     </div>
   );
@@ -208,6 +213,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
 
 
 export const ReportsTab = () => {
+  const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
@@ -216,6 +222,14 @@ export const ReportsTab = () => {
   const [reportType, setReportType] = useState<"general" | "classes">("general");
   const [ebdObservations, setEbdObservations] = useState<string>("");
   const printableAreaRef = useRef<HTMLDivElement>(null);
+
+  // Extrair anos únicos das datas disponíveis
+  const availableYears = [...new Set(availableDates.map(date => new Date(date + 'T12:00:00Z').getFullYear().toString()))].sort((a, b) => b.localeCompare(a));
+  
+  // Filtrar datas pelo ano selecionado
+  const filteredDates = selectedYear 
+    ? availableDates.filter(date => new Date(date + 'T12:00:00Z').getFullYear().toString() === selectedYear)
+    : availableDates;
 
   useEffect(() => {
     fetchAvailableDates();
@@ -315,6 +329,13 @@ export const ReportsTab = () => {
     }
   };
 
+  const handleYearChange = (year: string) => {
+    setSelectedYear(year);
+    setSelectedDate("");
+    setReportData(null);
+    setNoData(false);
+  };
+
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
     fetchReportData(date);
@@ -392,12 +413,18 @@ export const ReportsTab = () => {
           <CardDescription>Gere relatórios detalhados das atividades da Escola Bíblica Dominical</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 no-print">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <CalendarDays className="h-5 w-5 text-muted-foreground" />
-            <Select value={selectedDate} onValueChange={handleDateChange}>
-              <SelectTrigger className="w-64"><SelectValue placeholder="Selecione uma data" /></SelectTrigger>
+            <Select value={selectedYear} onValueChange={handleYearChange}>
+              <SelectTrigger className="w-32"><SelectValue placeholder="Ano" /></SelectTrigger>
               <SelectContent>
-                {availableDates.map(date => (<SelectItem key={date} value={date}>{new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR')}</SelectItem>))}
+                {availableYears.map(year => (<SelectItem key={year} value={year}>{year}</SelectItem>))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedDate} onValueChange={handleDateChange} disabled={!selectedYear}>
+              <SelectTrigger className="w-64"><SelectValue placeholder={selectedYear ? "Selecione uma data" : "Selecione o ano primeiro"} /></SelectTrigger>
+              <SelectContent>
+                {filteredDates.map(date => (<SelectItem key={date} value={date}>{new Date(date + 'T12:00:00Z').toLocaleDateString('pt-BR')}</SelectItem>))}
               </SelectContent>
             </Select>
           </div>
