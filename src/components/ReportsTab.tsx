@@ -46,7 +46,7 @@ interface ReportData {
 }
 
 // Componentes do Relatório (definidos fora para melhor performance)
-const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string }) => {
+const GeneralReport = ({ reportData, selectedDate, ebdObservations, reportTheme }: { reportData: ReportData | null; selectedDate: string; ebdObservations?: string; reportTheme: string }) => {
   const reportYear = selectedDate ? new Date(selectedDate + 'T12:00:00Z').getFullYear() : new Date().getFullYear();
   
   return (
@@ -124,13 +124,13 @@ const GeneralReport = ({ reportData, selectedDate, ebdObservations }: { reportDa
       </div>
       
       <div className="text-center mt-1" style={{ marginTop: 'auto' }}>
-        <p className="font-bold text-xs">{reportYear} ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
+        <p className="font-bold text-xs">{reportTheme}</p>
       </div>
     </main>
   </div>
 );};
 
-const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | null; selectedDate: string }) => {
+const ClassesReport = ({ reportData, selectedDate, reportTheme }: { reportData: ReportData | null; selectedDate: string; reportTheme: string }) => {
   const reportYear = selectedDate ? new Date(selectedDate + 'T12:00:00Z').getFullYear() : new Date().getFullYear();
   
   // Separar classes por faixa etária e ordenar por nome
@@ -205,7 +205,7 @@ const ClassesReport = ({ reportData, selectedDate }: { reportData: ReportData | 
         </div>
       </div>
       <div className="text-center mt-1" style={{ marginTop: 'auto' }}>
-        <p className="font-bold text-xs">{reportYear} ANO DA CELEBRAÇÃO - SALMOS 35.27</p>
+        <p className="font-bold text-xs">{reportTheme}</p>
       </div>
     </div>
   );
@@ -221,6 +221,7 @@ export const ReportsTab = () => {
   const [noData, setNoData] = useState(false);
   const [reportType, setReportType] = useState<"general" | "classes">("general");
   const [ebdObservations, setEbdObservations] = useState<string>("");
+  const [reportTheme, setReportTheme] = useState<string>("2025 ANO DA CELEBRAÇÃO - SALMOS 35.27");
   const printableAreaRef = useRef<HTMLDivElement>(null);
 
   // Extrair anos únicos das datas disponíveis
@@ -430,16 +431,31 @@ export const ReportsTab = () => {
           </div>
           {selectedDate && (<div className="flex gap-4"><Button variant={reportType === "general" ? "default" : "outline"} onClick={() => setReportType("general")}>Relatório Geral (A4)</Button><Button variant={reportType === "classes" ? "default" : "outline"} onClick={() => setReportType("classes")}>Relatório por Classes (A4 Paisagem)</Button></div>)}
           
-          {selectedDate && reportType === "general" && (
-            <div className="space-y-2">
-              <Label htmlFor="ebd-observations">Observações da EBD (aparecerá no relatório geral)</Label>
-              <textarea
-                id="ebd-observations"
-                className="w-full min-h-[100px] p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="Digite aqui as observações gerais da EBD..."
-                value={ebdObservations}
-                onChange={(e) => setEbdObservations(e.target.value)}
-              />
+          {selectedDate && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="report-theme">Tema/Frase do Ano (Rodapé)</Label>
+                <input
+                  id="report-theme"
+                  type="text"
+                  className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  placeholder="Ex: 2026 Ano da Plenitude - 2 Reis 3:18"
+                  value={reportTheme}
+                  onChange={(e) => setReportTheme(e.target.value)}
+                />
+              </div>
+              {reportType === "general" && (
+                <div className="space-y-2">
+                  <Label htmlFor="ebd-observations">Observações da EBD (aparecerá no relatório geral)</Label>
+                  <textarea
+                    id="ebd-observations"
+                    className="w-full min-h-[100px] p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="Digite aqui as observações gerais da EBD..."
+                    value={ebdObservations}
+                    onChange={(e) => setEbdObservations(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -459,14 +475,14 @@ export const ReportsTab = () => {
             </div>
             <div className="border rounded-lg overflow-auto bg-gray-200 p-4 flex justify-center">
               <div style={{ transform: 'scale(0.8)', transformOrigin: 'top center' }}>
-                 {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} ebdObservations={ebdObservations} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} />}
+                 {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} ebdObservations={ebdObservations} reportTheme={reportTheme} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} reportTheme={reportTheme} />}
               </div>
             </div>
           </div>
 
           <div className="hidden">
             <div ref={printableAreaRef}>
-              {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} ebdObservations={ebdObservations} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} />}
+              {reportType === "general" ? <GeneralReport reportData={reportData} selectedDate={selectedDate} ebdObservations={ebdObservations} reportTheme={reportTheme} /> : <ClassesReport reportData={reportData} selectedDate={selectedDate} reportTheme={reportTheme} />}
             </div>
           </div>
         </>
