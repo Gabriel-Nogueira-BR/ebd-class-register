@@ -221,7 +221,15 @@ export const ReportsTab = () => {
   const [noData, setNoData] = useState(false);
   const [reportType, setReportType] = useState<"general" | "classes">("general");
   const [ebdObservations, setEbdObservations] = useState<string>("");
-  const [reportTheme, setReportTheme] = useState<string>("2025 ANO DA CELEBRAÇÃO - SALMOS 35.27");
+  const [reportTheme, setReportTheme] = useState<string>(() => {
+    const saved = localStorage.getItem("ebd-report-theme");
+    return saved || "2025 ANO DA CELEBRAÇÃO - SALMOS 35.27";
+  });
+
+  // Persistir reportTheme no localStorage
+  useEffect(() => {
+    localStorage.setItem("ebd-report-theme", reportTheme);
+  }, [reportTheme]);
   const printableAreaRef = useRef<HTMLDivElement>(null);
 
   // Extrair anos únicos das datas disponíveis
