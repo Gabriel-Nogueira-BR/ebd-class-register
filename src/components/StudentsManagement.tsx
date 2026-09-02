@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, Eye } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Printer } from "lucide-react";
 import { StudentAttendanceDialog } from "./StudentAttendanceDialog";
 
 interface Student {
@@ -64,6 +64,9 @@ export const StudentsManagement = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [selectedStudentName, setSelectedStudentName] = useState("");
   const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
+
+  // Print report state
+  const [printClassId, setPrintClassId] = useState("");
 
   useEffect(() => {
     fetchData();
