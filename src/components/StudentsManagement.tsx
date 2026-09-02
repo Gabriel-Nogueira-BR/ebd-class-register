@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, Eye } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Printer } from "lucide-react";
 import { StudentAttendanceDialog } from "./StudentAttendanceDialog";
 
 interface Student {
@@ -64,6 +64,9 @@ export const StudentsManagement = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [selectedStudentName, setSelectedStudentName] = useState("");
   const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
+
+  // Print report state
+  const [printClassId, setPrintClassId] = useState("");
 
   useEffect(() => {
     fetchData();
@@ -308,6 +311,130 @@ export const StudentsManagement = () => {
       : <ArrowDown className="ml-2 h-4 w-4" />;
   };
 
+  const handlePrintClassList = () => {
+    if (!printClassId) {
+      toast({
+        variant: "destructive",
+        title: "Selecione uma classe",
+        description: "Escolha uma classe para gerar o relatório.",
+      });
+      return;
+    }
+
+    const cls = classes.find((c) => c.id.toString() === printClassId);
+    if (!cls) return;
+
+    const classStudents = students
+      .filter((s) => s.class_id === cls.id && s.active)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const theme = localStorage.getItem("ebd-report-theme") || "2025 ANO DA CELEBRAÇÃO - SALMOS 35.27";
+    const today = new Date().toLocaleDateString("pt-BR");
+
+    const formatBirthDate = (d: string | null) => {
+      if (!d) return "-";
+      return new Date(d + "T12:00:00").toLocaleDateString("pt-BR");
+    };
+
+    const rows = classStudents
+      .map(
+        (s, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td style="text-align:left">${s.name}</td>
+          <td>${formatBirthDate(s.birth_date)}</td>
+          <td>${s.phone || "-"}</td>
+        </tr>`
+      )
+      .join("");
+
+    const printWindow = window.open("", "", "height=800,width=800");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Lista de Alunos - ${cls.name}</title>
+          <style>
+            @page { size: A4 portrait; margin: 6mm; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            body {
+              font-family: Arial, Helvetica, sans-serif;
+              margin: 0;
+              padding: 0;
+              font-size: 11px;
+              color: #000;
+              display: flex;
+              flex-direction: column;
+              min-height: 282mm;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 2px solid #000;
+              padding-bottom: 8px;
+              margin-bottom: 10px;
+            }
+            .header h1 { font-size: 16px; margin: 0 0 4px 0; text-transform: uppercase; }
+            .header h2 { font-size: 13px; margin: 0 0 2px 0; font-weight: normal; }
+            .header p { font-size: 10px; margin: 2px 0; color: #333; }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 6px;
+            }
+            th, td {
+              border: 1px solid #000;
+              padding: 4px 6px;
+              text-align: center;
+              font-size: 11px;
+            }
+            th { background: #e5e5e5; font-weight: bold; }
+            .summary { margin-top: 8px; font-size: 11px; }
+            .footer {
+              margin-top: auto;
+              padding-top: 10px;
+              border-top: 2px solid #000;
+              text-align: center;
+              font-size: 11px;
+              font-weight: bold;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Escola Bíblica Dominical</h1>
+            <h2>Lista de Alunos - ${cls.name}</h2>
+            <p>Emitido em ${today}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px">Nº</th>
+                <th>Nome</th>
+                <th style="width:100px">Nascimento</th>
+                <th style="width:120px">Telefone</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows || `<tr><td colspan="4">Nenhum aluno ativo nesta classe.</td></tr>`}
+            </tbody>
+          </table>
+          <p class="summary"><strong>Total de alunos ativos:</strong> ${classStudents.length}</p>
+          <div class="footer">${theme}</div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }, 250);
+    };
+  };
+
   if (isLoading) {
     // Skeleton Loader
   }
@@ -376,6 +503,38 @@ export const StudentsManagement = () => {
             </div>
             <Button onClick={addStudent} className="w-full">
               Adicionar Aluno
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Relatório de Alunos por Classe</CardTitle>
+          <CardDescription>
+            Selecione uma classe para gerar a listagem de alunos em PDF (imprimir ou salvar)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div className="space-y-2 flex-1 w-full">
+              <Label htmlFor="print-class">Classe</Label>
+              <Select value={printClassId} onValueChange={setPrintClassId}>
+                <SelectTrigger id="print-class">
+                  <SelectValue placeholder="Selecione a classe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id.toString()}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handlePrintClassList} className="w-full sm:w-auto">
+              <Printer className="h-4 w-4 mr-2" />
+              Imprimir / Salvar PDF
             </Button>
           </div>
         </CardContent>
