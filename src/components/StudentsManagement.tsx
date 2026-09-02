@@ -510,6 +510,38 @@ export const StudentsManagement = () => {
 
       <Card>
         <CardHeader>
+          <CardTitle>Relatório de Alunos por Classe</CardTitle>
+          <CardDescription>
+            Selecione uma classe para gerar a listagem de alunos em PDF (imprimir ou salvar)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div className="space-y-2 flex-1 w-full">
+              <Label htmlFor="print-class">Classe</Label>
+              <Select value={printClassId} onValueChange={setPrintClassId}>
+                <SelectTrigger id="print-class">
+                  <SelectValue placeholder="Selecione a classe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id.toString()}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={handlePrintClassList} className="w-full sm:w-auto">
+              <Printer className="h-4 w-4 mr-2" />
+              Imprimir / Salvar PDF
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Lista de Alunos</CardTitle>
           <CardDescription>
             Gerencie todos os alunos cadastrados no sistema
