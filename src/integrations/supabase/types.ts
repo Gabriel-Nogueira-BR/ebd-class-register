@@ -103,6 +103,72 @@ export type Database = {
           },
         ]
       }
+      student_change_requests: {
+        Row: {
+          address: string | null
+          birth_date: string | null
+          class_id: number | null
+          created_at: string
+          id: string
+          phone: string | null
+          reason: string | null
+          request_type: string
+          requested_by: string | null
+          reviewed_at: string | null
+          status: string
+          student_id: number | null
+          student_name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          birth_date?: string | null
+          class_id?: number | null
+          created_at?: string
+          id?: string
+          phone?: string | null
+          reason?: string | null
+          request_type: string
+          requested_by?: string | null
+          reviewed_at?: string | null
+          status?: string
+          student_id?: number | null
+          student_name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          birth_date?: string | null
+          class_id?: number | null
+          created_at?: string
+          id?: string
+          phone?: string | null
+          reason?: string | null
+          request_type?: string
+          requested_by?: string | null
+          reviewed_at?: string | null
+          status?: string
+          student_id?: number | null
+          student_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_change_requests_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_change_requests_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           active: boolean | null
