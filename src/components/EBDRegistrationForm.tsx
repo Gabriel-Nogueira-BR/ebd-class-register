@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Lock, X, Eye, Trash2 } from "lucide-react";
+import { Lock, X, Eye, Trash2, UserPlus, Clock, UserMinus } from "lucide-react";
 
 interface Class {
   id: number;
@@ -65,6 +65,13 @@ export const EBDRegistrationForm = () => {
   const [offeringCashDisplay, setOfferingCashDisplay] = useState<string>('');
   const [offeringPixDisplay, setOfferingPixDisplay] = useState<string>('');
   const [filesToDelete, setFilesToDelete] = useState<string[]>([]);
+  // Solicitações de alteração de alunos (dependem de aprovação da Secretaria)
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [newStudentRequestName, setNewStudentRequestName] = useState('');
+  const [newStudentRequestBirth, setNewStudentRequestBirth] = useState('');
+  const [newStudentRequestPhone, setNewStudentRequestPhone] = useState('');
+  const [studentToRequestRemoval, setStudentToRequestRemoval] = useState<Student | null>(null);
+  const [removalReason, setRemovalReason] = useState('');
 
   // Auto-save to localStorage with debounce
   useEffect(() => {
@@ -181,6 +188,81 @@ export const EBDRegistrationForm = () => {
       toast({ variant: "destructive", title: "Erro", description: "Erro ao carregar alunos." });
     }
   };
+
+  const fetchPendingRequests = async (classId: string) => {
+    if (!classId) { setPendingRequests([]); return; }
+    const { data, error } = await supabase
+      .from("student_change_requests")
+      .select("*")
+      .eq("class_id", parseInt(classId))
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    if (error) { console.error(error); return; }
+    setPendingRequests(data || []);
+  };
+
+  useEffect(() => {
+    fetchPendingRequests(selectedClassId);
+    const channel = supabase
+      .channel('form-student-requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'student_change_requests' }, () => {
+        fetchPendingRequests(selectedClassId);
+        fetchStudents();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClassId]);
+
+  const handleRequestAddStudent = async () => {
+    if (!selectedClassId) {
+      toast({ variant: "destructive", title: "Selecione uma classe", description: "Escolha a classe antes de solicitar a inclusão." });
+      return;
+    }
+    if (!newStudentRequestName.trim()) {
+      toast({ variant: "destructive", title: "Informe o nome", description: "Digite o nome do aluno." });
+      return;
+    }
+    const { error } = await supabase.from("student_change_requests").insert({
+      request_type: 'add',
+      class_id: parseInt(selectedClassId),
+      student_name: newStudentRequestName.trim(),
+      birth_date: newStudentRequestBirth || null,
+      phone: newStudentRequestPhone.trim() || null,
+    });
+    if (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível enviar a solicitação." });
+      return;
+    }
+    setNewStudentRequestName(''); setNewStudentRequestBirth(''); setNewStudentRequestPhone('');
+    fetchPendingRequests(selectedClassId);
+    toast({ title: "Solicitação enviada", description: "A inclusão aguarda aprovação da Secretaria da EBD." });
+  };
+
+  const handleRequestRemoveStudent = async () => {
+    if (!studentToRequestRemoval) return;
+    const { error } = await supabase.from("student_change_requests").insert({
+      request_type: 'remove',
+      class_id: studentToRequestRemoval.class_id,
+      student_id: studentToRequestRemoval.id,
+      student_name: studentToRequestRemoval.name,
+      reason: removalReason.trim() || null,
+    });
+    setStudentToRequestRemoval(null);
+    setRemovalReason('');
+    if (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível enviar a solicitação." });
+      return;
+    }
+    fetchPendingRequests(selectedClassId);
+    toast({ title: "Solicitação enviada", description: "A exclusão aguarda aprovação da Secretaria da EBD." });
+  };
+
+  const hasPendingRemoval = (studentId: number) =>
+    pendingRequests.some(r => r.request_type === 'remove' && r.student_id === studentId);
+
 
   const studentsInClass = students.filter(student => student.class_id === parseInt(selectedClassId));
   const handleStudentCheck = (studentName: string, checked: boolean) => {
@@ -517,11 +599,57 @@ export const EBDRegistrationForm = () => {
                     <CardContent className="p-4">
                       {!selectedClassId ? (<p className="text-muted-foreground text-center py-8">Selecione uma classe para ver a lista de alunos.</p>)
                       : studentsInClass.length === 0 ? (<p className="text-muted-foreground text-center py-8">Não há alunos cadastrados para esta classe.</p>)
-                      : (<ScrollArea className="h-48"><div className="space-y-2">{studentsInClass.map((student) => (<div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5"><Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} /><Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label></div>))}</div></ScrollArea>)}
+                      : (<ScrollArea className="h-48"><div className="space-y-2">{studentsInClass.map((student) => (<div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5"><Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} /><Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label>{hasPendingRemoval(student.id) ? (<span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> exclusão em análise</span>) : (<Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setStudentToRequestRemoval(student); setRemovalReason(''); }} title="Solicitar exclusão deste aluno"><UserMinus className="h-4 w-4" /></Button>)}</div>))}</div></ScrollArea>)}
                     </CardContent>
                   </Card>
                   {selectedClassId && studentsInClass.length > 0 && (<p className="text-xs text-primary font-medium">{presentStudents.length} de {studentsInClass.length} alunos presentes</p>)}
                 </div>
+
+                {selectedClassId && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-primary">Solicitar Inclusão de Aluno</Label>
+                    <Card className="border-primary/20">
+                      <CardContent className="p-4 space-y-3">
+                        <p className="text-xs text-muted-foreground">As alterações na relação de alunos passam por aprovação da Secretaria da EBD.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <Input placeholder="Nome do aluno" value={newStudentRequestName} onChange={(e) => setNewStudentRequestName(e.target.value)} className="border-primary/20" />
+                          <Input type="date" value={newStudentRequestBirth} onChange={(e) => setNewStudentRequestBirth(e.target.value)} className="border-primary/20" />
+                          <Input placeholder="Telefone (opcional)" value={newStudentRequestPhone} onChange={(e) => setNewStudentRequestPhone(e.target.value)} className="border-primary/20" />
+                        </div>
+                        <Button type="button" variant="outline" onClick={handleRequestAddStudent} className="w-full md:w-auto">
+                          <UserPlus className="h-4 w-4 mr-2" /> Enviar solicitação
+                        </Button>
+
+                        {pendingRequests.length > 0 && (
+                          <div className="pt-2 border-t space-y-1">
+                            <p className="text-xs font-semibold text-primary flex items-center gap-1"><Clock className="h-3 w-3" /> Aguardando aprovação da Secretaria</p>
+                            {pendingRequests.map((r) => (
+                              <p key={r.id} className="text-xs text-muted-foreground">
+                                {r.request_type === 'add' ? 'Inclusão' : 'Exclusão'}: {r.student_name}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                <AlertDialog open={!!studentToRequestRemoval} onOpenChange={(open) => { if (!open) setStudentToRequestRemoval(null); }}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Solicitar exclusão de aluno</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        A exclusão de {studentToRequestRemoval?.name} será enviada para aprovação da Secretaria da EBD. O aluno continua na lista até a aprovação.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Textarea placeholder="Motivo (opcional)" value={removalReason} onChange={(e) => setRemovalReason(e.target.value)} />
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleRequestRemoveStudent}>Enviar solicitação</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Visitantes</Label><Input type="number" value={visitors || ""} onChange={(e) => setVisitors(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
                   <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Bíblias</Label><Input type="number" value={bibles || ""} onChange={(e) => setBibles(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
