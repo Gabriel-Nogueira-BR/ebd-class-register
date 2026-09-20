@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Printer } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Search, Eye, Printer, Check, X, Clock } from "lucide-react";
 import { StudentAttendanceDialog } from "./StudentAttendanceDialog";
 
 interface Student {
@@ -68,6 +68,9 @@ export const StudentsManagement = () => {
   // Print report state
   const [printClassId, setPrintClassId] = useState("");
 
+  // Solicitações pendentes de aprovação
+  const [requests, setRequests] = useState<any[]>([]);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -106,6 +109,72 @@ export const StudentsManagement = () => {
       setIsLoading(false);
     }
   };
+
+  const fetchRequests = async () => {
+    const { data, error } = await supabase
+      .from("student_change_requests")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    if (error) { console.error(error); return; }
+    setRequests(data || []);
+  };
+
+  useEffect(() => {
+    fetchRequests();
+    const channel = supabase
+      .channel('admin-student-requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'student_change_requests' }, () => {
+        fetchRequests();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const approveRequest = async (req: any) => {
+    try {
+      if (req.request_type === 'add') {
+        const { error } = await supabase.from("students").insert([{
+          name: req.student_name,
+          class_id: req.class_id,
+          birth_date: req.birth_date || null,
+          phone: req.phone || null,
+          address: req.address || null,
+          active: true,
+        }]);
+        if (error) throw error;
+      } else if (req.student_id) {
+        const { error } = await supabase.from("students").update({ active: false }).eq("id", req.student_id);
+        if (error) throw error;
+      }
+      const { error: reqError } = await supabase
+        .from("student_change_requests")
+        .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+        .eq("id", req.id);
+      if (reqError) throw reqError;
+      toast({ title: "Solicitação aprovada", description: req.request_type === 'add' ? "Aluno incluído na classe." : "Aluno inativado." });
+      fetchRequests();
+      fetchData();
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível aprovar a solicitação." });
+    }
+  };
+
+  const rejectRequest = async (req: any) => {
+    const { error } = await supabase
+      .from("student_change_requests")
+      .update({ status: 'rejected', reviewed_at: new Date().toISOString() })
+      .eq("id", req.id);
+    if (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível recusar a solicitação." });
+      return;
+    }
+    toast({ title: "Solicitação recusada" });
+    fetchRequests();
+  };
+
 
   const addStudent = async () => {
     if (!newStudentName.trim() || !newStudentClassId) {
@@ -441,6 +510,60 @@ export const StudentsManagement = () => {
 
   return (
     <div className="space-y-6">
+      <Card className={requests.length > 0 ? "border-primary" : undefined}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Validação de Alterações
+            {requests.length > 0 && <Badge variant="destructive">{requests.length}</Badge>}
+          </CardTitle>
+          <CardDescription>
+            Solicitações de inclusão e exclusão de alunos feitas pelos secretários das classes, pendentes de aprovação da Secretaria da EBD.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {requests.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma solicitação pendente.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Aluno</TableHead>
+                  <TableHead>Classe</TableHead>
+                  <TableHead>Motivo</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {requests.map((req) => (
+                  <TableRow key={req.id}>
+                    <TableCell>
+                      <Badge variant={req.request_type === 'add' ? 'default' : 'destructive'}>
+                        {req.request_type === 'add' ? 'Inclusão' : 'Exclusão'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{req.student_name}</TableCell>
+                    <TableCell>{classes.find((c) => c.id === req.class_id)?.name || "-"}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{req.reason || "-"}</TableCell>
+                    <TableCell className="text-sm">{new Date(req.created_at).toLocaleDateString("pt-BR")}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button size="sm" onClick={() => approveRequest(req)}>
+                        <Check className="h-4 w-4 mr-1" /> Aprovar
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => rejectRequest(req)}>
+                        <X className="h-4 w-4 mr-1" /> Recusar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Adicionar Novo Aluno</CardTitle>
