@@ -599,11 +599,57 @@ export const EBDRegistrationForm = () => {
                     <CardContent className="p-4">
                       {!selectedClassId ? (<p className="text-muted-foreground text-center py-8">Selecione uma classe para ver a lista de alunos.</p>)
                       : studentsInClass.length === 0 ? (<p className="text-muted-foreground text-center py-8">Não há alunos cadastrados para esta classe.</p>)
-                      : (<ScrollArea className="h-48"><div className="space-y-2">{studentsInClass.map((student) => (<div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5"><Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} /><Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label></div>))}</div></ScrollArea>)}
+                      : (<ScrollArea className="h-48"><div className="space-y-2">{studentsInClass.map((student) => (<div key={student.id} className="flex items-center space-x-2 p-2 rounded-lg hover:bg-primary/5"><Checkbox id={`student-${student.id}`} checked={presentStudents.includes(student.name)} onCheckedChange={(checked) => handleStudentCheck(student.name, checked as boolean)} /><Label htmlFor={`student-${student.id}`} className="flex-1 cursor-pointer text-sm">{student.name}</Label>{hasPendingRemoval(student.id) ? (<span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> exclusão em análise</span>) : (<Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { setStudentToRequestRemoval(student); setRemovalReason(''); }} title="Solicitar exclusão deste aluno"><UserMinus className="h-4 w-4" /></Button>)}</div>))}</div></ScrollArea>)}
                     </CardContent>
                   </Card>
                   {selectedClassId && studentsInClass.length > 0 && (<p className="text-xs text-primary font-medium">{presentStudents.length} de {studentsInClass.length} alunos presentes</p>)}
                 </div>
+
+                {selectedClassId && (
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold text-primary">Solicitar Inclusão de Aluno</Label>
+                    <Card className="border-primary/20">
+                      <CardContent className="p-4 space-y-3">
+                        <p className="text-xs text-muted-foreground">As alterações na relação de alunos passam por aprovação da Secretaria da EBD.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <Input placeholder="Nome do aluno" value={newStudentRequestName} onChange={(e) => setNewStudentRequestName(e.target.value)} className="border-primary/20" />
+                          <Input type="date" value={newStudentRequestBirth} onChange={(e) => setNewStudentRequestBirth(e.target.value)} className="border-primary/20" />
+                          <Input placeholder="Telefone (opcional)" value={newStudentRequestPhone} onChange={(e) => setNewStudentRequestPhone(e.target.value)} className="border-primary/20" />
+                        </div>
+                        <Button type="button" variant="outline" onClick={handleRequestAddStudent} className="w-full md:w-auto">
+                          <UserPlus className="h-4 w-4 mr-2" /> Enviar solicitação
+                        </Button>
+
+                        {pendingRequests.length > 0 && (
+                          <div className="pt-2 border-t space-y-1">
+                            <p className="text-xs font-semibold text-primary flex items-center gap-1"><Clock className="h-3 w-3" /> Aguardando aprovação da Secretaria</p>
+                            {pendingRequests.map((r) => (
+                              <p key={r.id} className="text-xs text-muted-foreground">
+                                {r.request_type === 'add' ? 'Inclusão' : 'Exclusão'}: {r.student_name}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                <AlertDialog open={!!studentToRequestRemoval} onOpenChange={(open) => { if (!open) setStudentToRequestRemoval(null); }}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Solicitar exclusão de aluno</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        A exclusão de {studentToRequestRemoval?.name} será enviada para aprovação da Secretaria da EBD. O aluno continua na lista até a aprovação.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Textarea placeholder="Motivo (opcional)" value={removalReason} onChange={(e) => setRemovalReason(e.target.value)} />
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleRequestRemoveStudent}>Enviar solicitação</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Visitantes</Label><Input type="number" value={visitors || ""} onChange={(e) => setVisitors(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
                   <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Bíblias</Label><Input type="number" value={bibles || ""} onChange={(e) => setBibles(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
