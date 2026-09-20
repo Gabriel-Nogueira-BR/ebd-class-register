@@ -189,6 +189,81 @@ export const EBDRegistrationForm = () => {
     }
   };
 
+  const fetchPendingRequests = async (classId: string) => {
+    if (!classId) { setPendingRequests([]); return; }
+    const { data, error } = await supabase
+      .from("student_change_requests")
+      .select("*")
+      .eq("class_id", parseInt(classId))
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    if (error) { console.error(error); return; }
+    setPendingRequests(data || []);
+  };
+
+  useEffect(() => {
+    fetchPendingRequests(selectedClassId);
+    const channel = supabase
+      .channel('form-student-requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'student_change_requests' }, () => {
+        fetchPendingRequests(selectedClassId);
+        fetchStudents();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClassId]);
+
+  const handleRequestAddStudent = async () => {
+    if (!selectedClassId) {
+      toast({ variant: "destructive", title: "Selecione uma classe", description: "Escolha a classe antes de solicitar a inclusão." });
+      return;
+    }
+    if (!newStudentRequestName.trim()) {
+      toast({ variant: "destructive", title: "Informe o nome", description: "Digite o nome do aluno." });
+      return;
+    }
+    const { error } = await supabase.from("student_change_requests").insert({
+      request_type: 'add',
+      class_id: parseInt(selectedClassId),
+      student_name: newStudentRequestName.trim(),
+      birth_date: newStudentRequestBirth || null,
+      phone: newStudentRequestPhone.trim() || null,
+    });
+    if (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível enviar a solicitação." });
+      return;
+    }
+    setNewStudentRequestName(''); setNewStudentRequestBirth(''); setNewStudentRequestPhone('');
+    fetchPendingRequests(selectedClassId);
+    toast({ title: "Solicitação enviada", description: "A inclusão aguarda aprovação da Secretaria da EBD." });
+  };
+
+  const handleRequestRemoveStudent = async () => {
+    if (!studentToRequestRemoval) return;
+    const { error } = await supabase.from("student_change_requests").insert({
+      request_type: 'remove',
+      class_id: studentToRequestRemoval.class_id,
+      student_id: studentToRequestRemoval.id,
+      student_name: studentToRequestRemoval.name,
+      reason: removalReason.trim() || null,
+    });
+    setStudentToRequestRemoval(null);
+    setRemovalReason('');
+    if (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível enviar a solicitação." });
+      return;
+    }
+    fetchPendingRequests(selectedClassId);
+    toast({ title: "Solicitação enviada", description: "A exclusão aguarda aprovação da Secretaria da EBD." });
+  };
+
+  const hasPendingRemoval = (studentId: number) =>
+    pendingRequests.some(r => r.request_type === 'remove' && r.student_id === studentId);
+
+
   const studentsInClass = students.filter(student => student.class_id === parseInt(selectedClassId));
   const handleStudentCheck = (studentName: string, checked: boolean) => {
     setPresentStudents(prev => checked ? [...prev, studentName] : prev.filter(name => name !== studentName));
