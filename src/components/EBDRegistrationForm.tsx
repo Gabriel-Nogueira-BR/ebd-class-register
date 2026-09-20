@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Lock, X, Eye, Trash2 } from "lucide-react";
+import { Lock, X, Eye, Trash2, UserPlus, Clock, UserMinus } from "lucide-react";
 
 interface Class {
   id: number;
@@ -65,6 +65,13 @@ export const EBDRegistrationForm = () => {
   const [offeringCashDisplay, setOfferingCashDisplay] = useState<string>('');
   const [offeringPixDisplay, setOfferingPixDisplay] = useState<string>('');
   const [filesToDelete, setFilesToDelete] = useState<string[]>([]);
+  // Solicitações de alteração de alunos (dependem de aprovação da Secretaria)
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [newStudentRequestName, setNewStudentRequestName] = useState('');
+  const [newStudentRequestBirth, setNewStudentRequestBirth] = useState('');
+  const [newStudentRequestPhone, setNewStudentRequestPhone] = useState('');
+  const [studentToRequestRemoval, setStudentToRequestRemoval] = useState<Student | null>(null);
+  const [removalReason, setRemovalReason] = useState('');
 
   // Auto-save to localStorage with debounce
   useEffect(() => {
