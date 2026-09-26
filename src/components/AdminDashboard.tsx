@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, ComposedChart, LabelList } from "recharts";
-import { BookOpen, BookMarked, Trophy } from "lucide-react";
+import { BookOpen, BookMarked, Trophy, FileDown } from "lucide-react";
 import { CalendarDays, TrendingUp, Users, DollarSign, AlertTriangle, ArrowUpDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,15 @@ interface AbsentStudent {
   totalSundays: number;
   presentCount: number;
 }
+
+const getClassCategory = (className: string): string => {
+  const upper = className.toUpperCase();
+  if (upper.includes("PROFESSOR") || upper.includes("EXTRA")) return "Ignorar";
+  if (upper.includes("OVELHINHAS") || upper.includes("CORDEIRINHOS") || upper.includes("SOLDADOS") || upper.includes("ESTRELA")) return "Crianças";
+  if (upper.includes("LAEL") || upper.includes("ÁGAPE")) return "Adolescentes";
+  if (upper.includes("NOVA VIDA") || upper.includes("EMANUEL") || upper.includes("ESTER") || upper.includes("LÍRIOS") || upper.includes("VENCEDORAS") || upper.includes("ESPERANÇA") || upper.includes("HERÓIS") || upper.includes("DÉBORA") || upper.includes("MOISÉS") || upper.includes("ABRAÃO")) return "Adultos";
+  return "Ignorar";
+};
 
 export const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
@@ -651,7 +660,7 @@ footer { margin-top: auto; text-align: center; border-top: 2px solid #1e3a8a; pa
                             <SelectItem value="Q3">3º Trimestre</SelectItem>
                             <SelectItem value="Q4">4º Trimestre</SelectItem>
                         </SelectContent>
-                    </Select>
+                    </Select></div>
                 </div>
             </CardHeader>
             <CardContent>
