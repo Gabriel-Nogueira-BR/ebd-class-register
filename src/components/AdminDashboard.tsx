@@ -75,6 +75,76 @@ export const AdminDashboard = () => {
   const [quarterlyData, setQuarterlyData] = useState<QuarterlyData[]>([]);
   const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([]);
   const [classData, setClassData] = useState<ClassData[]>([]);
+  const [quarterClassData, setQuarterClassData] = useState<ClassData[]>([]);
+  const [quarterSummary, setQuarterSummary] = useState({ sundays: 0, enrolled: 0, avgPresent: 0, avgVisitors: 0, avgPercent: 0, totalCash: 0, totalPix: 0, avgOffering: 0, classCount: 0 });
+
+  const quarterLabel = (q: string) => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const map: Record<string, string> = { Q1: "1º Trimestre", Q2: "2º Trimestre", Q3: "3º Trimestre", Q4: "4º Trimestre" };
+    if (map[q]) return `${map[q]} de ${year}`;
+    return `${Math.floor(now.getMonth() / 3) + 1}º Trimestre de ${year}`;
+  };
+
+  const exportQuarterPdf = () => {
+    const theme = localStorage.getItem("ebd-report-theme") || "2025 ANO DA CELEBRAÇÃO - SALMOS 35.27";
+    const s = quarterSummary;
+    const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const esc = (t: string) => t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+    const valid = quarterClassData.filter(c => getClassCategory(c.className) !== "Ignorar");
+    const cats = ["Crianças", "Adolescentes", "Adultos"];
+    const metrics: { key: keyof ClassData; filter: keyof ClassData; label: string; desc: string }[] = [
+      { key: "presenceRate", filter: "enrolled", label: "Presença", desc: "presentes / matriculados" },
+      { key: "biblesRate", filter: "totalPresent", label: "Bíblias", desc: "bíblias / (presentes + visitantes)" },
+      { key: "magazinesRate", filter: "totalPresent", label: "Revistas", desc: "revistas / (presentes + visitantes)" },
+    ];
+    const rankingHtml = metrics.map(m => {
+      const cols = cats.map(cat => {
+        const top = valid.filter(c => getClassCategory(c.className) === cat && (c[m.filter] as number) > 0)
+          .sort((a, b) => (b[m.key] as number) - (a[m.key] as number)).slice(0, 3);
+        const rows = top.length ? top.map((c, i) => `<tr><td class="pos">${i + 1}º</td><td>${esc(c.className)}</td><td class="num">${String(c[m.key]).replace('.', ',')}%</td></tr>`).join("") : `<tr><td colspan="3" class="empty">Sem dados</td></tr>`;
+        return `<div class="col"><div class="cat">${cat}</div><table>${rows}</table></div>`;
+      }).join("");
+      return `<div class="rank"><h3>Ranking de ${m.label} <span>(${m.desc})</span></h3><div class="cols">${cols}</div></div>`;
+    }).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Análise Trimestral - EBD</title><style>
+@page { size: A4 portrait; margin: 6mm; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; font-family: Arial, sans-serif; color: #111; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.page { width: 198mm; min-height: 284mm; display: flex; flex-direction: column; }
+header { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 3mm; margin-bottom: 4mm; }
+header h1 { margin: 0; font-size: 18px; color: #1e3a8a; } header h2 { margin: 1mm 0 0; font-size: 14px; } header p { margin: 1mm 0 0; font-size: 10px; color: #555; }
+h3 { font-size: 13px; margin: 0 0 2mm; color: #1e3a8a; } h3 span { font-size: 9px; color: #666; font-weight: normal; }
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2mm; margin-bottom: 4mm; }
+.card { border: 1px solid #cbd5e1; border-radius: 2mm; padding: 2mm; text-align: center; }
+.card .l { font-size: 9px; color: #555; text-transform: uppercase; } .card .v { font-size: 16px; font-weight: bold; margin-top: 1mm; } .card .s { font-size: 9px; color: #666; }
+section { margin-bottom: 4mm; }
+.rank { margin-bottom: 3mm; } .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2mm; }
+.col { border: 1px solid #cbd5e1; border-radius: 2mm; padding: 1.5mm; } .cat { font-weight: bold; font-size: 11px; margin-bottom: 1mm; border-bottom: 1px solid #e2e8f0; }
+table { width: 100%; border-collapse: collapse; font-size: 10px; } td { padding: 0.8mm 0.5mm; } .pos { width: 6mm; font-weight: bold; } .num { text-align: right; font-weight: bold; white-space: nowrap; } .empty { text-align: center; color: #888; }
+footer { margin-top: auto; text-align: center; border-top: 2px solid #1e3a8a; padding-top: 2mm; font-weight: bold; font-size: 12px; color: #1e3a8a; }
+</style></head><body><div class="page">
+<header><h1>ESCOLA BÍBLICA DOMINICAL</h1><h2>Análise Trimestral — ${quarterLabel(selectedQuarter)}</h2><p>Emitido em ${new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })} • ${s.sundays} domingo(s) registrado(s)</p></header>
+<section><h3>Frequência Média Geral</h3><div class="cards">
+<div class="card"><div class="l">Frequência média</div><div class="v">${s.avgPercent.toFixed(1).replace('.', ',')}%</div><div class="s">dos matriculados</div></div>
+<div class="card"><div class="l">Presentes por domingo</div><div class="v">${Math.round(s.avgPresent)}</div><div class="s">de ${s.enrolled} matriculados</div></div>
+<div class="card"><div class="l">Visitantes por domingo</div><div class="v">${Math.round(s.avgVisitors)}</div><div class="s">média</div></div>
+<div class="card"><div class="l">Total por domingo</div><div class="v">${Math.round(s.avgPresent + s.avgVisitors)}</div><div class="s">presentes + visitantes</div></div>
+</div></section>
+<section><h3>Rankings por Faixa Etária</h3>${rankingHtml}</section>
+<section><h3>Ofertas</h3><div class="cards">
+<div class="card"><div class="l">Média por domingo</div><div class="v">${brl(s.avgOffering)}</div></div>
+<div class="card"><div class="l">Total dinheiro</div><div class="v">${brl(s.totalCash)}</div></div>
+<div class="card"><div class="l">Total PIX</div><div class="v">${brl(s.totalPix)}</div></div>
+<div class="card"><div class="l">Total do trimestre</div><div class="v">${brl(s.totalCash + s.totalPix)}</div></div>
+</div></section>
+<footer>${esc(theme)}</footer>
+</div><script>window.onload=()=>{setTimeout(()=>{window.print();},300)}</script></body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) { toast({ title: "Permita pop-ups", description: "Libere pop-ups para gerar o PDF.", variant: "destructive" }); return; }
+    w.document.write(html);
+    w.document.close();
+  };
   const [absentStudents, setAbsentStudents] = useState<AbsentStudent[]>([]);
   const [filteredAbsentStudents, setFilteredAbsentStudents] = useState<AbsentStudent[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -263,25 +333,6 @@ export const AdminDashboard = () => {
         
         setAttendanceData(attendanceByWeek.length > 0 ? attendanceByWeek : [{ dayOfWeek: "Sem dados", attendance: 0 }]);
         
-        // Processar dados por classe
-        const classStats: { [key: number]: { present: number; count: number; bibles: number; magazines: number } } = {};
-        
-        // Filtrar registros por data se selecionada
-        const filteredRegistrations = selectedDate && selectedDate !== "all"
-          ? registrations.filter(r => r.registration_date.substring(0, 10) === selectedDate)
-          : registrations;
-        
-        // Contar presentes, bíblias e revistas por classe
-        filteredRegistrations.forEach(reg => {
-          if (reg.class_id) {
-            if (!classStats[reg.class_id]) classStats[reg.class_id] = { present: 0, count: 0, bibles: 0, magazines: 0 };
-            classStats[reg.class_id].present += reg.total_present || 0;
-            classStats[reg.class_id].bibles += reg.bibles || 0;
-            classStats[reg.class_id].magazines += reg.magazines || 0;
-            classStats[reg.class_id].count++;
-          }
-        });
-        
         // Contar matriculados por classe
         const enrolledByClass: { [key: number]: number } = {};
         students?.forEach(s => {
@@ -289,40 +340,79 @@ export const AdminDashboard = () => {
             enrolledByClass[s.class_id] = (enrolledByClass[s.class_id] || 0) + 1;
           }
         });
-        
-        // Calcular média ou total dependendo se uma data está selecionada
-        const classArray: ClassData[] = classes.map(cls => {
-          const stat = classStats[cls.id];
-          const totalPresent = stat?.present || 0;
-          const totalBibles = stat?.bibles || 0;
-          const totalMagazines = stat?.magazines || 0;
-          const count = stat?.count || 1;
-          const enrolled = enrolledByClass[cls.id] || 0;
-          const avgPresent = selectedDate && selectedDate !== "all" ? totalPresent : Math.round(totalPresent / count);
-          
-          const presenceRate = enrolled > 0 ? Math.round((avgPresent / enrolled) * 100 * 10) / 10 : 0;
-          const biblesRate = totalPresent > 0 ? Math.round((totalBibles / totalPresent) * 100 * 10) / 10 : 0;
-          const magazinesRate = totalPresent > 0 ? Math.round((totalMagazines / totalPresent) * 100 * 10) / 10 : 0;
-          
-          return {
-            className: cls.name.split('(')[0].trim(),
-            enrolled,
-            present: avgPresent,
-            percentage: presenceRate,
-            presenceRate,
-            biblesRate,
-            magazinesRate,
-            totalBibles,
-            totalMagazines,
-            totalPresent,
-          };
-        }).sort((a, b) => {
-          const numA = parseInt(a.className.match(/\d+/)?.[0] || '0');
-          const numB = parseInt(b.className.match(/\d+/)?.[0] || '0');
-          return numA - numB;
+
+        const buildClassArray = (regs: typeof registrations, singleDate: boolean): ClassData[] => {
+          const classStats: { [key: number]: { present: number; visitors: number; count: number; bibles: number; magazines: number } } = {};
+          regs.forEach(reg => {
+            if (reg.class_id) {
+              if (!classStats[reg.class_id]) classStats[reg.class_id] = { present: 0, visitors: 0, count: 0, bibles: 0, magazines: 0 };
+              classStats[reg.class_id].present += reg.total_present || 0;
+              classStats[reg.class_id].visitors += reg.visitors || 0;
+              classStats[reg.class_id].bibles += reg.bibles || 0;
+              classStats[reg.class_id].magazines += reg.magazines || 0;
+              classStats[reg.class_id].count++;
+            }
+          });
+          return classes.map(cls => {
+            const stat = classStats[cls.id];
+            const totalPresent = stat?.present || 0;
+            const totalVisitors = stat?.visitors || 0;
+            const totalBibles = stat?.bibles || 0;
+            const totalMagazines = stat?.magazines || 0;
+            const count = stat?.count || 1;
+            const enrolled = enrolledByClass[cls.id] || 0;
+            const avgPresent = singleDate ? totalPresent : Math.round(totalPresent / count);
+            // Bíblias/revistas: base = matriculados presentes + visitantes (nunca > 100%)
+            const base = totalPresent + totalVisitors;
+            const presenceRate = enrolled > 0 ? Math.round((avgPresent / enrolled) * 100 * 10) / 10 : 0;
+            const biblesRate = base > 0 ? Math.min(100, Math.round((totalBibles / base) * 100 * 10) / 10) : 0;
+            const magazinesRate = base > 0 ? Math.min(100, Math.round((totalMagazines / base) * 100 * 10) / 10) : 0;
+            return {
+              className: cls.name.split('(')[0].trim(),
+              enrolled,
+              present: avgPresent,
+              percentage: presenceRate,
+              presenceRate,
+              biblesRate,
+              magazinesRate,
+              totalBibles,
+              totalMagazines,
+              totalPresent: base,
+            };
+          }).sort((a, b) => {
+            const numA = parseInt(a.className.match(/\d+/)?.[0] || '0');
+            const numB = parseInt(b.className.match(/\d+/)?.[0] || '0');
+            return numA - numB;
+          });
+        };
+
+        const isSingle = !!selectedDate && selectedDate !== "all";
+        const filteredRegistrations = isSingle
+          ? registrations.filter(r => r.registration_date.substring(0, 10) === selectedDate)
+          : registrations;
+
+        setClassData(buildClassArray(filteredRegistrations, isSingle));
+        setQuarterClassData(buildClassArray(registrations, false));
+
+        // Resumo geral para o relatório PDF
+        const sundaysCount = Object.keys(sundayData).length;
+        const sumPresent = registrations.reduce((s, r) => s + (r.total_present || 0), 0);
+        const sumVisitors = registrations.reduce((s, r) => s + (r.visitors || 0), 0);
+        const sumCash = registrations.reduce((s, r) => s + parseFloat(String(r.offering_cash || 0)), 0);
+        const sumPix = registrations.reduce((s, r) => s + parseFloat(String(r.offering_pix || 0)), 0);
+        const enrolledTotal = students?.length || 0;
+        const avgPresentN = sundaysCount > 0 ? sumPresent / sundaysCount : 0;
+        setQuarterSummary({
+          sundays: sundaysCount,
+          enrolled: enrolledTotal,
+          avgPresent: avgPresentN,
+          avgVisitors: sundaysCount > 0 ? sumVisitors / sundaysCount : 0,
+          avgPercent: enrolledTotal > 0 ? (avgPresentN / enrolledTotal) * 100 : 0,
+          totalCash: sumCash,
+          totalPix: sumPix,
+          avgOffering: sundaysCount > 0 ? (sumCash + sumPix) / sundaysCount : 0,
+          classCount: new Set(registrations.map(r => r.class_id).filter(Boolean)).size,
         });
-        
-        setClassData(classArray);
         
         // Coletar datas disponíveis (domingos únicos dos registros)
         const uniqueSundayDates = registrations
