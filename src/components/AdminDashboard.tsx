@@ -641,6 +641,7 @@ footer { margin-top: auto; text-align: center; border-top: 2px solid #1e3a8a; pa
                         <CardTitle className="flex items-center gap-2"><CalendarDays className="h-5 w-5" />Análise Trimestral</CardTitle>
                         <CardDescription>Visualize as métricas do trimestre selecionado</CardDescription>
                     </div>
+                    <div className="flex items-center gap-2"><Button variant="outline" size="sm" onClick={exportQuarterPdf}><FileDown className="h-4 w-4 mr-1" />Exportar PDF</Button>
                     <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
                         <SelectTrigger className="w-40"><SelectValue placeholder="Trimestre" /></SelectTrigger>
                         <SelectContent>
@@ -913,8 +914,8 @@ footer { margin-top: auto; text-align: center; border-top: 2px solid #1e3a8a; pa
                             const categories = ["Crianças", "Adolescentes", "Adultos"];
                             const metrics: { key: keyof ClassData; filterKey: keyof ClassData; label: string; icon: React.ReactNode; description: string }[] = [
                                 { key: "presenceRate", filterKey: "enrolled", label: "Ranking de Presença", icon: <Users className="h-4 w-4 text-blue-600" />, description: "% presentes / matriculados" },
-                                { key: "biblesRate", filterKey: "totalPresent", label: "Ranking de Bíblias", icon: <BookOpen className="h-4 w-4 text-green-600" />, description: "% bíblias / presentes" },
-                                { key: "magazinesRate", filterKey: "totalPresent", label: "Ranking de Revistas", icon: <BookMarked className="h-4 w-4 text-purple-600" />, description: "% revistas / presentes" },
+                                { key: "biblesRate", filterKey: "totalPresent", label: "Ranking de Bíblias", icon: <BookOpen className="h-4 w-4 text-green-600" />, description: "% bíblias / (presentes + visitantes)" },
+                                { key: "magazinesRate", filterKey: "totalPresent", label: "Ranking de Revistas", icon: <BookMarked className="h-4 w-4 text-purple-600" />, description: "% revistas / (presentes + visitantes)" },
                             ];
 
                             return (
