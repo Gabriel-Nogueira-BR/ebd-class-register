@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getReportTheme } from "@/lib/reportTheme";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -397,7 +398,7 @@ export const StudentsManagement = () => {
       .filter((s) => s.class_id === cls.id && s.active)
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    const theme = localStorage.getItem("ebd-report-theme") || "2025 ANO DA CELEBRAÇÃO - SALMOS 35.27";
+    const theme = getReportTheme(new Date().getFullYear());
     const today = new Date().toLocaleDateString("pt-BR");
 
     const formatBirthDate = (d: string | null) => {
