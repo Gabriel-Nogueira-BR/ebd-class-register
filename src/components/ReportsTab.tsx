@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { getReportTheme, saveReportTheme } from "@/lib/reportTheme";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -221,15 +222,16 @@ export const ReportsTab = () => {
   const [noData, setNoData] = useState(false);
   const [reportType, setReportType] = useState<"general" | "classes">("general");
   const [ebdObservations, setEbdObservations] = useState<string>("");
-  const [reportTheme, setReportTheme] = useState<string>(() => {
-    const saved = localStorage.getItem("ebd-report-theme");
-    return saved || "2025 ANO DA CELEBRAÇÃO - SALMOS 35.27";
-  });
-
-  // Persistir reportTheme no localStorage
+  const themeYear = selectedDate ? new Date(selectedDate + 'T12:00:00').getFullYear() : (selectedYear ? Number(selectedYear) : new Date().getFullYear());
+  const [reportTheme, setReportTheme] = useState<string>(() => getReportTheme(new Date().getFullYear()));
+  // Carregar a frase do ano do domingo selecionado
   useEffect(() => {
-    localStorage.setItem("ebd-report-theme", reportTheme);
-  }, [reportTheme]);
+    setReportTheme(getReportTheme(themeYear));
+  }, [themeYear]);
+  const handleThemeChange = (value: string) => {
+    setReportTheme(value);
+    saveReportTheme(themeYear, value);
+  };
   const printableAreaRef = useRef<HTMLDivElement>(null);
 
   // Extrair anos únicos das datas disponíveis
@@ -442,14 +444,14 @@ export const ReportsTab = () => {
           {selectedDate && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="report-theme">Tema/Frase do Ano (Rodapé)</Label>
+                <Label htmlFor="report-theme">Tema/Frase do Ano {themeYear} (Rodapé)</Label>
                 <input
                   id="report-theme"
                   type="text"
                   className="w-full p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="Ex: 2026 Ano da Plenitude - 2 Reis 3:18"
                   value={reportTheme}
-                  onChange={(e) => setReportTheme(e.target.value)}
+                  onChange={(e) => handleThemeChange(e.target.value)}
                 />
               </div>
               {reportType === "general" && (

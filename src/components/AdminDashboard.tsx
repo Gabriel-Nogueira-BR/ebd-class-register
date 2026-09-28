@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getReportTheme } from "@/lib/reportTheme";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -47,6 +48,7 @@ interface ClassData {
   totalBibles: number;
   totalMagazines: number;
   totalPresent: number;
+  totalOffering?: number;
 }
 
 interface AbsentStudent {
@@ -96,7 +98,7 @@ export const AdminDashboard = () => {
   };
 
   const exportQuarterPdf = () => {
-    const theme = localStorage.getItem("ebd-report-theme") || "2025 ANO DA CELEBRAÇÃO - SALMOS 35.27";
+    const theme = getReportTheme(new Date().getFullYear());
     const s = quarterSummary;
     const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     const esc = (t: string) => t.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
@@ -107,6 +109,13 @@ export const AdminDashboard = () => {
       { key: "biblesRate", filter: "totalPresent", label: "Bíblias", desc: "bíblias / (presentes + visitantes)" },
       { key: "magazinesRate", filter: "totalPresent", label: "Revistas", desc: "revistas / (presentes + visitantes)" },
     ];
+    const offerCols = cats.map(cat => {
+      const top = valid.filter(c => getClassCategory(c.className) === cat && (c.totalOffering || 0) > 0)
+        .sort((a, b) => (b.totalOffering || 0) - (a.totalOffering || 0)).slice(0, 3);
+      const rows = top.length ? top.map((c, i) => `<tr><td class="pos">${i + 1}º</td><td>${esc(c.className)}</td><td class="num">${brl(c.totalOffering || 0)}</td></tr>`).join("") : `<tr><td colspan="3" class="empty">Sem dados</td></tr>`;
+      return `<div class="col"><div class="cat">${cat}</div><table>${rows}</table></div>`;
+    }).join("");
+    const offerRankHtml = `<div class="rank"><h3>Ranking de Ofertas <span>(total ofertado no trimestre: dinheiro + PIX)</span></h3><div class="cols">${offerCols}</div></div>`;
     const rankingHtml = metrics.map(m => {
       const cols = cats.map(cat => {
         const top = valid.filter(c => getClassCategory(c.className) === cat && (c[m.filter] as number) > 0)
@@ -115,7 +124,7 @@ export const AdminDashboard = () => {
         return `<div class="col"><div class="cat">${cat}</div><table>${rows}</table></div>`;
       }).join("");
       return `<div class="rank"><h3>Ranking de ${m.label} <span>(${m.desc})</span></h3><div class="cols">${cols}</div></div>`;
-    }).join("");
+    }).join("") + offerRankHtml;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Análise Trimestral - EBD</title><style>
 @page { size: A4 portrait; margin: 6mm; }
 * { box-sizing: border-box; }
@@ -351,14 +360,15 @@ footer { margin-top: auto; text-align: center; border-top: 2px solid #1e3a8a; pa
         });
 
         const buildClassArray = (regs: typeof registrations, singleDate: boolean): ClassData[] => {
-          const classStats: { [key: number]: { present: number; visitors: number; count: number; bibles: number; magazines: number } } = {};
+          const classStats: { [key: number]: { present: number; visitors: number; count: number; bibles: number; magazines: number; offering: number } } = {};
           regs.forEach(reg => {
             if (reg.class_id) {
-              if (!classStats[reg.class_id]) classStats[reg.class_id] = { present: 0, visitors: 0, count: 0, bibles: 0, magazines: 0 };
+              if (!classStats[reg.class_id]) classStats[reg.class_id] = { present: 0, visitors: 0, count: 0, bibles: 0, magazines: 0, offering: 0 };
               classStats[reg.class_id].present += reg.total_present || 0;
               classStats[reg.class_id].visitors += reg.visitors || 0;
               classStats[reg.class_id].bibles += reg.bibles || 0;
               classStats[reg.class_id].magazines += reg.magazines || 0;
+              classStats[reg.class_id].offering += parseFloat(String(reg.offering_cash || 0)) + parseFloat(String(reg.offering_pix || 0));
               classStats[reg.class_id].count++;
             }
           });
@@ -387,6 +397,7 @@ footer { margin-top: auto; text-align: center; border-top: 2px solid #1e3a8a; pa
               totalBibles,
               totalMagazines,
               totalPresent: base,
+              totalOffering: Math.round((stat?.offering || 0) * 100) / 100,
             };
           }).sort((a, b) => {
             const numA = parseInt(a.className.match(/\d+/)?.[0] || '0');
