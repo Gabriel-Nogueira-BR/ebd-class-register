@@ -48,7 +48,7 @@ export const TodayStatusDialog = () => {
 
       if (registrationsError) throw registrationsError;
 
-      setClasses(classesData || []);
+      setClasses((classesData || []).filter(c => !c.name.toUpperCase().includes('OFERTA AVULSA')));
       setTodayRegistrations(registrationsData || []);
     } catch (error) {
       console.error("Error fetching today's status:", error);

@@ -12,7 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Lock, X, Eye, Trash2, UserPlus, Clock, UserMinus } from "lucide-react";
+import { Lock, X, Eye, Trash2, UserPlus, Clock, UserMinus, Printer } from "lucide-react";
+import { printStudentList } from "@/lib/printStudentList";
 
 interface Class {
   id: number;
@@ -23,6 +24,8 @@ interface Student {
   name: string;
   class_id: number;
   active: boolean;
+  birth_date: string | null;
+  phone: string | null;
 }
 interface FormData {
   registrationDate: string;
@@ -264,6 +267,8 @@ export const EBDRegistrationForm = () => {
     pendingRequests.some(r => r.request_type === 'remove' && r.student_id === studentId);
 
 
+  const selectedClassName = classes.find(c => c.id === parseInt(selectedClassId))?.name || '';
+  const isLooseOffering = selectedClassName.toUpperCase().includes('OFERTA AVULSA');
   const studentsInClass = students.filter(student => student.class_id === parseInt(selectedClassId));
   const handleStudentCheck = (studentName: string, checked: boolean) => {
     setPresentStudents(prev => checked ? [...prev, studentName] : prev.filter(name => name !== studentName));
@@ -454,6 +459,10 @@ export const EBDRegistrationForm = () => {
       toast({ variant: "destructive", title: "Erro de validação", description: "Por favor, selecione uma classe." });
       return;
     }
+    if (isLooseOffering && !ebdNotes.trim()) {
+      toast({ variant: "destructive", title: "Descreva o ocorrido", description: "Para oferta sem classe, informe nas observações da EBD a origem do valor." });
+      return;
+    }
     setIsSubmitting(true);
     try {
       // Delete files from storage if requested
@@ -593,8 +602,19 @@ export const EBDRegistrationForm = () => {
                     {classes.map((cls) => (<option key={cls.id} value={cls.id.toString()}>{cls.name}</option>))}
                   </select>
                 </div>
+                {isLooseOffering && (
+                  <p className="text-sm p-3 rounded-lg border border-primary/20 bg-primary/5">Oferta sem classe: informe apenas os valores e descreva o ocorrido nas observações da EBD.</p>
+                )}
+                {!isLooseOffering && (<>
                 <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-primary">Alunos Presentes</Label>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-sm font-semibold text-primary">Alunos Presentes</Label>
+                    {selectedClassId && studentsInClass.length > 0 && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => printStudentList(selectedClassName, [...studentsInClass].sort((a, b) => a.name.localeCompare(b.name)))}>
+                        <Printer className="h-4 w-4 mr-2" /> Baixar lista de alunos
+                      </Button>
+                    )}
+                  </div>
                   <Card className="border-primary/20">
                     <CardContent className="p-4">
                       {!selectedClassId ? (<p className="text-muted-foreground text-center py-8">Selecione uma classe para ver a lista de alunos.</p>)
@@ -650,7 +670,8 @@ export const EBDRegistrationForm = () => {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                </>)}
+                <div className={isLooseOffering ? "hidden" : "grid grid-cols-1 md:grid-cols-3 gap-6"}>
                   <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Visitantes</Label><Input type="number" value={visitors || ""} onChange={(e) => setVisitors(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
                   <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Bíblias</Label><Input type="number" value={bibles || ""} onChange={(e) => setBibles(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
                   <div className="space-y-2"><Label className="text-sm font-semibold text-primary">Revistas</Label><Input type="number" value={magazines || ""} onChange={(e) => setMagazines(parseInt(e.target.value) || 0)} placeholder="0" min="0" className="border-primary/20 focus:border-primary"/></div>
